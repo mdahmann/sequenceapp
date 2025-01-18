@@ -249,10 +249,14 @@ export default function SequencePoseManager({
     }
   };
 
+  const isCustomPose = (pose: YogaPose) => {
+    return 'user_id' in pose;
+  };
+
   if (!poses.length) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Feature toggles */}
       <div className="flex flex-wrap gap-3 p-4 bg-gray-800/50 rounded-xl border border-white/10">
         <div className="flex items-center gap-2">
@@ -322,6 +326,11 @@ export default function SequencePoseManager({
                             {peakPoses.some(p => p.id === pose.id) && (
                               <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
                                 Peak Pose
+                              </span>
+                            )}
+                            {isCustomPose(pose) && (
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
+                                Custom Pose
                               </span>
                             )}
                           </div>
@@ -403,7 +412,7 @@ export default function SequencePoseManager({
 
       {/* Add Pose Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-lg space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold text-white">Add Pose</h3>
@@ -488,7 +497,14 @@ export default function SequencePoseManager({
                     whileTap={{ scale: 0.98 }}
                     className="w-full text-left p-4 rounded-xl bg-gray-700/50 hover:bg-gray-700 transition-colors"
                   >
-                    <h4 className="font-medium text-white">{pose.english_name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white">{pose.english_name}</h4>
+                      {isCustomPose(pose) && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
+                          Custom Pose
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
                     <div className="flex gap-2 mt-2">
                       <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">

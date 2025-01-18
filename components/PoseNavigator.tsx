@@ -23,25 +23,59 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
   const [isCustomPoseFormOpen, setIsCustomPoseFormOpen] = useState(false);
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
   const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+
+      // Subscribe to auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsAuthenticated(!!session);
+      });
+
+      return () => subscription.unsubscribe();
+    };
+
+    checkAuth();
+  }, []);
 
   const fetchCustomPoses = async () => {
     try {
-      const response = await fetch('/api/custom-poses');
-      if (!response.ok) {
-        throw new Error('Failed to fetch custom poses');
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        setCustomPoses([]);
+        return;
       }
-      const data = await response.json();
-      setCustomPoses(data);
+
+      const { data, error } = await supabase
+        .from('custom_poses')
+        .select('*')
+        .eq('user_id', session.session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setCustomPoses(data || []);
     } catch (error) {
       console.error('Error fetching custom poses:', error);
+      setCustomPoses([]);
     } finally {
       setIsLoadingCustomPoses(false);
     }
   };
 
   useEffect(() => {
-    fetchCustomPoses();
-  }, []);
+    if (isAuthenticated) {
+      fetchCustomPoses();
+    } else {
+      setCustomPoses([]);
+      setIsLoadingCustomPoses(false);
+    }
+  }, [isAuthenticated]);
 
   const allPoses = useMemo(() => {
     return [...initialPoses, ...customPoses];
@@ -90,16 +124,20 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
 
   const handleSaveCustomPose = async (pose: Omit<YogaPose, 'id'>) => {
     try {
-      const response = await fetch('/api/custom-poses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pose),
-      });
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        throw new Error('Not authenticated');
+      }
 
-      if (!response.ok) {
-        throw new Error('Failed to save custom pose');
+      const { error } = await supabase
+        .from('custom_poses')
+        .insert({
+          ...pose,
+          user_id: session.session.user.id
+        });
+
+      if (error) {
+        throw error;
       }
 
       // Refresh the custom poses list
@@ -116,12 +154,13 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
     }
 
     try {
-      const response = await fetch(`/api/custom-poses/${id}`, {
-        method: 'DELETE',
-      });
+      const { error } = await supabase
+        .from('custom_poses')
+        .delete()
+        .eq('id', id);
 
-      if (!response.ok) {
-        throw new Error('Failed to delete custom pose');
+      if (error) {
+        throw error;
       }
 
       // Refresh the custom poses list
@@ -187,14 +226,16 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
           <option value="Expert">Expert</option>
         </select>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsCustomPoseFormOpen(true)}
-          className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all whitespace-nowrap"
-        >
-          Add Custom Pose
-        </motion.button>
+        {isAuthenticated && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsCustomPoseFormOpen(true)}
+            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all whitespace-nowrap"
+          >
+            Add Custom Pose
+          </motion.button>
+        )}
       </motion.div>
 
       {/* Results Count */}
@@ -232,7 +273,7 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                     <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {isCustomPose && (
+                    {isAuthenticated && isCustomPose && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -279,11 +320,13 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
       )}
 
       {/* Modals */}
-      <PoseModal 
-        pose={selectedPose} 
-        onClose={() => setSelectedPose(null)}
-        onGenerateSequence={generateSequenceFromPose}
-      />
+      {selectedPose && (
+        <PoseModal 
+          pose={selectedPose} 
+          onClose={() => setSelectedPose(null)}
+          onGenerateSequence={generateSequenceFromPose}
+        />
+      )}
 
       <AnimatePresence>
         {isCustomPoseFormOpen && (

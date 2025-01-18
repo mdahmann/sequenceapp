@@ -51,8 +51,26 @@ export default function Navigation() {
   const menuItems = getMenuItems();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
+    try {
+      console.log('Starting sign out process...');
+      
+      // First clear any local state
+      setUser(null);
+      
+      // Sign out from Supabase and clear session
+      const { error } = await supabase.auth.signOut({
+        scope: 'global'
+      });
+      console.log('Supabase sign out completed', error || 'successfully');
+      
+      if (error) throw error;
+      
+      // Force a hard refresh to clear all state
+      console.log('Redirecting to home page...');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
   };
 
   return (

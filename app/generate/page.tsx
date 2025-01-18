@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -73,6 +73,8 @@ function GenerateContent() {
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
   const [hasLoadedSuggestions, setHasLoadedSuggestions] = useState(false);
   const [alternativePoses, setAlternativePoses] = useState<{[key: number]: YogaPose[]}>({});
+  const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
+  const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
 
   const focusOptions = [
     'Core & Balance',
@@ -396,6 +398,40 @@ function GenerateContent() {
     };
   };
 
+  const fetchCustomPoses = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        setCustomPoses([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('custom_poses')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setCustomPoses(data || []);
+    } catch (error) {
+      console.error('Error fetching custom poses:', error);
+      setCustomPoses([]);
+    } finally {
+      setIsLoadingCustomPoses(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomPoses();
+  }, []);
+
+  const allAvailablePoses = useMemo(() => {
+    return [...poses, ...customPoses];
+  }, [poses, customPoses]);
+
   const generateSequence = async () => {
     setIsGenerating(true);
     setSequence(null);
@@ -415,7 +451,7 @@ function GenerateContent() {
         description: pose.pose_description
       }));
 
-      const availablePosesData = poses.map(pose => ({
+      const availablePosesData = allAvailablePoses.map(pose => ({
         id: pose.id,
         name: pose.english_name,
         sanskrit_name: pose.sanskrit_name,
@@ -458,7 +494,7 @@ function GenerateContent() {
       }
 
       let generatedSequence = data.sequence
-        .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
+        .map((poseId: number) => allAvailablePoses.find((p: YogaPose) => p.id === poseId))
         .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
 
       if (generatedSequence.length === 0) {
@@ -494,7 +530,7 @@ function GenerateContent() {
         }
 
         const additionalPoses = complementaryData.poses
-          .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
+          .map((poseId: number) => allAvailablePoses.find((p: YogaPose) => p.id === poseId))
           .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
 
         if (additionalPoses.length === 0 && complementaryData.poses.length > 0) {
@@ -680,11 +716,11 @@ function GenerateContent() {
   };
 
   const filteredPoses = searchTerm
-    ? poses.filter(pose => 
+    ? allAvailablePoses.filter(pose => 
         pose.english_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         pose.sanskrit_name.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : poses;
+    : allAvailablePoses;
 
   // Modify getAiSuggestions function
   const getAiSuggestions = async (customPrompt?: string) => {
@@ -777,7 +813,7 @@ function GenerateContent() {
           level,
           poses_needed: posesNeeded,
           target_duration_minutes: targetDuration,
-          available_poses: poses.map(pose => ({
+          available_poses: allAvailablePoses.map(pose => ({
             id: pose.id,
             name: pose.english_name,
             sanskrit_name: pose.sanskrit_name,
@@ -796,7 +832,7 @@ function GenerateContent() {
 
       const data = await response.json();
       const additionalPoses = data.poses
-        .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
+        .map((poseId: number) => allAvailablePoses.find((p: YogaPose) => p.id === poseId))
         .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
 
       if (additionalPoses.length < posesNeeded) {
@@ -815,7 +851,7 @@ function GenerateContent() {
 
   const getFallbackComplementaryPoses = (currentSequence: YogaPose[], posesNeeded: number): YogaPose[] => {
     // Filter available poses to match current level and not already in sequence
-    const availablePoses = poses.filter(pose => 
+    const availablePoses = allAvailablePoses.filter(pose => 
       pose.difficulty_level === level &&
       !currentSequence.some(p => p.id === pose.id)
     );
@@ -857,7 +893,7 @@ function GenerateContent() {
           duration,
           ...poseRange,
           original_sequence_length: sequence?.length || 0,
-          available_poses: poses.map((pose: YogaPose) => ({
+          available_poses: allAvailablePoses.map((pose: YogaPose) => ({
             id: pose.id,
             name: pose.english_name,
             sanskrit_name: pose.sanskrit_name,
@@ -881,7 +917,7 @@ function GenerateContent() {
 
       // Map the returned pose IDs back to full pose objects
       let revisedSequence = data.sequence
-        .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
+        .map((poseId: number) => allAvailablePoses.find((p: YogaPose) => p.id === poseId))
         .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
       
       // If we still don't have enough poses, add complementary poses
@@ -951,7 +987,7 @@ function GenerateContent() {
               focus_areas: focus,
               level,
               poses_needed: minimumPoses - sequence.length,
-              available_poses: poses.map((pose: YogaPose) => ({
+              available_poses: allAvailablePoses.map((pose: YogaPose) => ({
                 id: pose.id,
                 name: pose.english_name,
                 sanskrit_name: pose.sanskrit_name,
@@ -965,7 +1001,7 @@ function GenerateContent() {
           if (complementaryPoses.ok) {
             const complementaryData = await complementaryPoses.json();
             const additionalPoses = complementaryData.poses
-              .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
+              .map((poseId: number) => allAvailablePoses.find((p: YogaPose) => p.id === poseId))
               .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
 
             // Add the complementary poses to the sequence
@@ -1353,7 +1389,7 @@ function GenerateContent() {
 
                 <SequencePoseManager
                   poses={sequence}
-                  allPoses={poses}
+                  allPoses={allAvailablePoses}
                   level={level}
                   onPosesChange={setSequence}
                   peakPoses={peakPoses}
