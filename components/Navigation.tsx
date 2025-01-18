@@ -1,22 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
 
-  const menuItems = [
-    { name: 'Generate', href: '/generate' },
-    { name: 'Sequences', href: '/saved' },
-    { name: 'Poses', href: '/poses' },
-    { name: 'Account', href: '/account' },
-  ];
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setIsLoading(false);
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const getMenuItems = () => {
+    const items = [
+      { name: 'Generate', href: '/generate' },
+      { name: 'Poses', href: '/poses' },
+    ];
+
+    if (user) {
+      items.push(
+        { name: 'Sequences', href: '/saved' },
+        { name: 'Account', href: '/account' }
+      );
+    } else if (!isLoading) {
+      items.push({ name: 'Sign Up', href: '/signup' });
+    }
+
+    return items;
+  };
 
   const isActive = (path: string) => pathname === path;
+  const menuItems = getMenuItems();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-lg border-b border-white/10">
@@ -44,6 +81,22 @@ export default function Navigation() {
                 {item.name}
               </Link>
             ))}
+            {!isLoading && !user && (
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors ml-2"
+              >
+                Log In
+              </Link>
+            )}
+            {!isLoading && user && (
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors ml-2"
+              >
+                Sign Out
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -102,6 +155,26 @@ export default function Navigation() {
                   {item.name}
                 </Link>
               ))}
+              {!isLoading && !user && (
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors mt-2"
+                >
+                  Log In
+                </Link>
+              )}
+              {!isLoading && user && (
+                <button
+                  onClick={async () => {
+                    await handleSignOut();
+                    setIsOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors mt-2"
+                >
+                  Sign Out
+                </button>
+              )}
             </div>
           </motion.div>
         )}

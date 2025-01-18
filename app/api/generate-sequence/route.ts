@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_API_BASE_URL
 });
 
 export async function POST(request: Request) {
@@ -101,7 +102,7 @@ Example:
 The sequence should create a cohesive flow that meets all the specified requirements while maintaining appropriate difficulty progression for the selected level.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

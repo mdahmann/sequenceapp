@@ -70,11 +70,17 @@ export default function SignUpPage() {
           </motion.div>
         ) : (
           <>
-            <div className="text-center">
+            <div className="text-center space-y-4">
               <h1 className="text-2xl font-bold text-white">Create an Account</h1>
-              <p className="mt-2 text-gray-400">
+              <p className="text-gray-400">
                 Join us to create and save your personalized yoga sequences
               </p>
+              <div className="flex justify-center gap-2 text-sm">
+                <span className="text-gray-400">Already have an account?</span>
+                <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                  Sign in
+                </Link>
+              </div>
             </div>
 
             <form onSubmit={handleSignUp} className="space-y-6">
@@ -109,26 +115,37 @@ export default function SignUpPage() {
               </div>
 
               {error && (
-                <div className="text-red-500 text-sm">
+                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm">
                   {error}
                 </div>
               )}
 
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-4 py-3 font-medium hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
               >
-                {isLoading ? 'Creating account...' : 'Sign Up'}
-              </button>
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Creating account...</span>
+                  </div>
+                ) : (
+                  'Create Account'
+                )}
+              </motion.button>
             </form>
 
-            <p className="text-center text-gray-400 text-sm">
-              Already have an account?{' '}
-              <Link href="/login" className="text-blue-400 hover:text-blue-300 transition-colors">
-                Log in
+            <div className="text-center">
+              <Link
+                href="/login"
+                className="text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Already registered? Sign in to your account
               </Link>
-            </p>
+            </div>
           </>
         )}
       </motion.div>

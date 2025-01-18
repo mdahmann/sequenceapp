@@ -2,21 +2,22 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_API_BASE_URL
 });
 
 export async function POST(req: Request) {
   try {
-    const { sequence, suggestion, focus, level, duration } = await req.json();
+    const { sequence, suggestion, customPrompt, focus, level, duration, available_poses } = await req.json();
 
-    const prompt = `As an expert yoga instructor, revise this ${duration}-minute ${level} level yoga sequence${focus.length > 0 ? ` focused on ${focus.join(' & ')}` : ''} based on the following suggestion:
+    const prompt = customPrompt || `As an expert yoga instructor, revise this ${duration}-minute ${level} level yoga sequence${focus.length > 0 ? ` focused on ${focus.join(' & ')}` : ''} based on the following suggestion:
 
 "${suggestion}"
 
 Current sequence with IDs:
 ${sequence.map((pose: any) => `${pose.english_name} (ID: ${pose.id})`).join(' → ')}
 
-Available pose IDs: ${sequence.map((pose: any) => pose.id).join(', ')}
+Available pose IDs: ${available_poses.map((pose: any) => pose.id).join(', ')}
 
 IMPORTANT: You must rearrange, reorder, or modify the sequence to implement the suggested improvement. Simply returning the same sequence is not acceptable. Make meaningful changes while following these rules:
 1. Only use pose IDs from the list provided above
@@ -52,7 +53,7 @@ IMPORTANT: For transitions, provide ONLY the movement instructions. Do not inclu
 ✗ "From Mountain Pose to Forward Fold: Hinge at hips..."`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -63,8 +64,8 @@ IMPORTANT: For transitions, provide ONLY the movement instructions. Do not inclu
           content: prompt
         }
       ],
-      temperature: 0.8,
-      max_tokens: 1500,
+      temperature: 0.7,
+      max_tokens: 2000,
       response_format: { type: "json_object" }
     });
 

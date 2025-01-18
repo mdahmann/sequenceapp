@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { YogaPose } from '@/lib/data/poses';
 import { Dialog } from '@headlessui/react';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import SequencePoseManager from '@/components/SequencePoseManager';
 
 interface GeneratePageProps {}
@@ -67,6 +67,7 @@ function GenerateContent() {
   const [isLoadingAiSuggestions, setIsLoadingAiSuggestions] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
   const [hasLoadedSuggestions, setHasLoadedSuggestions] = useState(false);
+  const [alternativePoses, setAlternativePoses] = useState<{[key: number]: YogaPose[]}>({});
 
   const focusOptions = [
     'Core & Balance',
@@ -387,6 +388,7 @@ function GenerateContent() {
     setRepetitions({});
     setShowFilters(false);
     setError('');
+    setAiSuggestions([]); // Reset suggestions when generating new sequence
 
     try {
       const focusPosesData = peakPoses.map(pose => ({
@@ -521,6 +523,52 @@ function GenerateContent() {
         : '';
       const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
       setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
+
+      // Fetch AI suggestions and alternative poses in parallel
+      try {
+        const [suggestionsResponse, alternativePosesResponse] = await Promise.all([
+          fetch('/api/suggest-sequence-improvements', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sequence: generatedSequence,
+              focus,
+              level,
+              duration
+            }),
+          }),
+          fetch('/api/suggest-pose-alternatives', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sequence: generatedSequence,
+              available_poses: availablePosesData,
+              focus,
+              level,
+              duration
+            }),
+          })
+        ]);
+
+        if (!suggestionsResponse.ok) throw new Error('Failed to get suggestions');
+        if (!alternativePosesResponse.ok) throw new Error('Failed to get alternative poses');
+
+        const [suggestionsData, alternativePosesData] = await Promise.all([
+          suggestionsResponse.json(),
+          alternativePosesResponse.json()
+        ]);
+
+        setAiSuggestions(suggestionsData.suggestions);
+        setAlternativePoses(alternativePosesData.alternatives);
+        setHasLoadedSuggestions(true);
+      } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+        // Don't throw here - we still want the sequence to be usable even if suggestions fail
+      }
     } catch (error) {
       console.error('Error generating sequence:', error);
       setError(error instanceof Error ? error.message : 'Failed to generate sequence');
@@ -624,8 +672,41 @@ function GenerateContent() {
 
   // Modify getAiSuggestions function
   const getAiSuggestions = async (customPrompt?: string) => {
-    if (hasLoadedSuggestions && !customPrompt) return;
-    
+    // If we have a custom prompt, fetch new suggestions
+    if (customPrompt) {
+      setIsLoadingAiSuggestions(true);
+      try {
+        const response = await fetch('/api/suggest-sequence-improvements', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sequence,
+            focus,
+            level,
+            duration,
+            customPrompt
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to get suggestions');
+        const data = await response.json();
+        setAiSuggestions(data.suggestions);
+      } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+      } finally {
+        setIsLoadingAiSuggestions(false);
+      }
+      return;
+    }
+
+    // If we already have suggestions and no custom prompt, just show the modal
+    if (hasLoadedSuggestions) {
+      return;
+    }
+
+    // If we don't have suggestions yet (rare case), fetch them
     setIsLoadingAiSuggestions(true);
     try {
       const response = await fetch('/api/suggest-sequence-improvements', {
@@ -637,8 +718,7 @@ function GenerateContent() {
           sequence,
           focus,
           level,
-          duration,
-          customPrompt
+          duration
         }),
       });
 
@@ -1211,61 +1291,61 @@ function GenerateContent() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <h2 className="text-xl sm:text-2xl font-bold text-white">
-                        Your Generated Sequence
-                      </h2>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          setIsAiModalOpen(true);
-                          getAiSuggestions();
-                        }}
-                        className="p-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                          <path fillRule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 00-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.294c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V3.936z" clipRule="evenodd" />
-                        </svg>
-                      </motion.button>
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="w-full space-y-4">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="sequence-title"
+                          type="text"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          placeholder="Enter a title for your sequence"
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-lg sm:text-xl font-medium text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setIsAiModalOpen(true);
+                            getAiSuggestions();
+                          }}
+                          className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <path fillRule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 00-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.294c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V3.936z" clipRule="evenodd" />
+                          </svg>
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleSaveSequence}
+                          disabled={!hasChanges || isSaving}
+                          className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {isSaving ? (
+                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <DocumentArrowDownIcon className="w-6 h-6" />
+                          )}
+                        </motion.button>
+                      </div>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: hasChanges ? 1.02 : 1 }}
-                      whileTap={{ scale: hasChanges ? 0.98 : 1 }}
-                      onClick={handleSaveSequence}
-                      disabled={isSaving || !hasChanges}
-                      className={`w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium transition-colors ${
-                        !hasChanges ? 'opacity-50 cursor-not-allowed from-gray-500 to-gray-600' : 'hover:from-blue-600 hover:to-purple-600'
-                      }`}
-                    >
-                      {isSaving ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Saving...</span>
-                        </div>
-                      ) : (
-                        'Save Changes'
-                      )}
-                    </motion.button>
                   </div>
                 </div>
 
-                {sequence && (
-                  <SequencePoseManager
-                    poses={sequence}
-                    allPoses={poses}
-                    level={level}
-                    onPosesChange={setSequence}
-                    peakPoses={peakPoses}
-                    setPeakPoses={setPeakPoses}
-                    timing={timing}
-                    transitions={transitions}
-                    repetitions={repetitions}
-                    enabledFeatures={enabledFeatures}
-                    onEnabledFeaturesChange={setEnabledFeatures}
-                  />
-                )}
+                <SequencePoseManager
+                  poses={sequence}
+                  allPoses={poses}
+                  level={level}
+                  onPosesChange={setSequence}
+                  peakPoses={peakPoses}
+                  setPeakPoses={setPeakPoses}
+                  timing={timing}
+                  transitions={transitions}
+                  repetitions={repetitions}
+                  enabledFeatures={enabledFeatures}
+                  onEnabledFeaturesChange={setEnabledFeatures}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -1372,8 +1452,7 @@ function GenerateContent() {
               ) : aiSuggestions.length > 0 ? (
                 <div className="space-y-4">
                   {aiSuggestions.slice(0, 3).map((suggestion, index) => {
-                    const [title, ...descriptionParts] = suggestion.split(':');
-                    const description = descriptionParts.join(':').trim();
+                    const [title, description] = suggestion.split('|').map(s => s.trim());
                     const isUsed = usedSuggestions.includes(suggestion);
                     
                     return (

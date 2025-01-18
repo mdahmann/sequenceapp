@@ -94,13 +94,19 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full space-y-8 bg-gray-800/50 backdrop-blur-lg p-8 rounded-2xl border border-white/10"
       >
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
             Welcome Back
           </h2>
           <p className="mt-2 text-gray-400">
             Sign in to access your sequences
           </p>
+          <div className="flex justify-center gap-2 text-sm">
+            <span className="text-gray-400">New to Sequence?</span>
+            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
+              Create an account
+            </Link>
+          </div>
         </div>
 
         {message && (
@@ -247,6 +253,12 @@ export default function LoginPage() {
             >
               Back to sign in
             </button>
+
+            <div className="text-center mt-4">
+              <Link href="/signup" className="text-blue-400 hover:text-blue-300 text-sm">
+                Don't have an account? Sign up
+              </Link>
+            </div>
           </form>
         ) : (
           <form onSubmit={handleMagicLinkLogin} className="mt-8 space-y-6">
@@ -294,6 +306,12 @@ export default function LoginPage() {
             >
               Back to sign in
             </button>
+
+            <div className="text-center mt-4">
+              <Link href="/signup" className="text-blue-400 hover:text-blue-300 text-sm">
+                Don't have an account? Sign up
+              </Link>
+            </div>
           </form>
         )}
       </motion.div>
