@@ -7,6 +7,7 @@ import PoseModal from './PoseModal';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import CustomPoseForm from './CustomPoseForm';
+import ConfirmationModal from './ConfirmationModal';
 
 interface PoseNavigatorProps {
   poses: YogaPose[];
@@ -24,6 +25,9 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
   const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [poseToDelete, setPoseToDelete] = useState<YogaPose | null>(null);
+  const [poseToEdit, setPoseToEdit] = useState<YogaPose | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -78,7 +82,10 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
   }, [isAuthenticated]);
 
   const allPoses = useMemo(() => {
-    return [...initialPoses, ...customPoses];
+    return [...initialPoses, ...customPoses.map(pose => ({
+      ...pose,
+      id: `custom-${pose.id}`
+    }))];
   }, [initialPoses, customPoses]);
 
   const filteredPoses = useMemo(() => {
@@ -148,27 +155,42 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
     }
   };
 
-  const handleDeleteCustomPose = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this custom pose?')) {
-      return;
-    }
+  const handleDeleteCustomPose = async (pose: YogaPose) => {
+    setPoseToDelete(pose);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!poseToDelete) return;
 
     try {
+      const numericId = typeof poseToDelete.id === 'string' 
+        ? parseInt(poseToDelete.id.replace('custom-', '')) 
+        : poseToDelete.id;
+      
       const { error } = await supabase
         .from('custom_poses')
         .delete()
-        .eq('id', id);
+        .eq('id', numericId);
 
       if (error) {
         throw error;
       }
 
-      // Refresh the custom poses list
       await fetchCustomPoses();
     } catch (error) {
       console.error('Error deleting custom pose:', error);
-      // You might want to show an error message to the user here
     }
+  };
+
+  const handleEditCustomPose = (pose: YogaPose) => {
+    // Remove the 'custom-' prefix from the ID for editing
+    const originalPose = {
+      ...pose,
+      id: typeof pose.id === 'string' ? parseInt(pose.id.replace('custom-', '')) : pose.id
+    };
+    setPoseToEdit(originalPose);
+    setIsCustomPoseFormOpen(true);
   };
 
   return (
@@ -256,7 +278,7 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {filteredPoses.map((pose) => {
-          const isCustomPose = customPoses.some(cp => cp.id === pose.id);
+          const isCustomPose = typeof pose.id === 'string' && pose.id.startsWith('custom-');
           return (
             <motion.div
               key={pose.id}
@@ -274,17 +296,30 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                   </div>
                   <div className="flex items-center gap-2">
                     {isAuthenticated && isCustomPose && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCustomPose(pose.id);
-                        }}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-400 hover:text-red-300"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditCustomPose(pose);
+                          }}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCustomPose(pose);
+                          }}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </>
                     )}
                     {isCustomPose && (
                       <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
@@ -331,11 +366,45 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
       <AnimatePresence>
         {isCustomPoseFormOpen && (
           <CustomPoseForm
-            onSubmit={handleSaveCustomPose}
-            onClose={() => setIsCustomPoseFormOpen(false)}
+            pose={poseToEdit}
+            onSubmit={async (pose) => {
+              if (poseToEdit) {
+                // Update existing pose
+                const { error } = await supabase
+                  .from('custom_poses')
+                  .update(pose)
+                  .eq('id', poseToEdit.id);
+
+                if (error) {
+                  console.error('Error updating custom pose:', error);
+                  return;
+                }
+              } else {
+                // Create new pose
+                await handleSaveCustomPose(pose);
+              }
+              setPoseToEdit(null);
+              setIsCustomPoseFormOpen(false);
+              await fetchCustomPoses();
+            }}
+            onClose={() => {
+              setPoseToEdit(null);
+              setIsCustomPoseFormOpen(false);
+            }}
           />
         )}
       </AnimatePresence>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setPoseToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Custom Pose"
+        message="Are you sure you want to delete this custom pose? This action cannot be undone."
+      />
     </div>
   );
 } 

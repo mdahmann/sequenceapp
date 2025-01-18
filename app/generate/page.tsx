@@ -75,7 +75,7 @@ function GenerateContent() {
   const [alternativePoses, setAlternativePoses] = useState<{[key: number]: YogaPose[]}>({});
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
   const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
-
+  
   const focusOptions = [
     'Core & Balance',
     'Strength & Power',
@@ -239,7 +239,7 @@ function GenerateContent() {
             try {
               if (typeof sequenceData.poses === 'string') {
                 parsedPoses = JSON.parse(sequenceData.poses);
-              } else {
+            } else {
                 parsedPoses = sequenceData.poses;
               }
             } catch (err) {
@@ -564,9 +564,9 @@ function GenerateContent() {
         setTransitions(timingData.transitions || []);
         setRepetitions(timingData.repetitions || {});
       } else {
-        setTiming(data.timing || []);
-        setTransitions(data.transitions || []);
-        setRepetitions(data.repetitions || {});
+      setTiming(data.timing || []);
+      setTransitions(data.transitions || []);
+      setRepetitions(data.repetitions || {});
       }
 
       setSequence(generatedSequence);
@@ -694,12 +694,12 @@ function GenerateContent() {
         if (insertError) throw insertError;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-      router.refresh();
-      router.push('/saved');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        router.refresh();
+        router.push('/saved');
     } catch (error: any) {
       console.error('Save error:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save sequence');
+        setSaveError(error instanceof Error ? error.message : 'Failed to save sequence');
     } finally {
       setIsSaving(false);
     }
@@ -1051,7 +1051,7 @@ function GenerateContent() {
     <>
       <AnimatePresence>
         {isGenerating && (
-          <motion.div 
+      <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1104,8 +1104,8 @@ function GenerateContent() {
                 <AnimatePresence mode="wait">
                   <motion.p 
                     key={currentQuote}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     className="text-white/80 text-2xl font-light tracking-wide leading-relaxed mb-12"
                     transition={{
@@ -1289,20 +1289,20 @@ function GenerateContent() {
                   </label>
                   <div className="space-y-2">
                     {peakPoses.map((pose) => (
-                      <div
+                      <div 
                         key={pose.english_name}
                         className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
                       >
-                        <div>
+                          <div>
                           <div className="font-medium text-white">{pose.english_name}</div>
                           <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
-                        </div>
+                          </div>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => handleRemovePeakPose(pose)}
+                            onClick={() => handleRemovePeakPose(pose)}
                           className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
-                        >
+                          >
                           <TrashIcon className="w-5 h-5" />
                         </motion.button>
                       </div>
@@ -1369,37 +1369,37 @@ function GenerateContent() {
                             <path fillRule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 00-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.294c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V3.936z" clipRule="evenodd" />
                           </svg>
                         </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleSaveSequence}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSaveSequence}
                           disabled={!hasChanges || isSaving}
                           className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          {isSaving ? (
+                    >
+                      {isSaving ? (
                             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
+                      ) : (
                             <DocumentArrowDownIcon className="w-6 h-6" />
-                          )}
-                        </motion.button>
-                      </div>
-                    </div>
+                      )}
+                    </motion.button>
                   </div>
+                    </div>
+                      </div>
                 </div>
 
-                <SequencePoseManager
-                  poses={sequence}
+                    <SequencePoseManager
+                      poses={sequence}
                   allPoses={allAvailablePoses}
-                  level={level}
-                  onPosesChange={setSequence}
-                  peakPoses={peakPoses}
-                  setPeakPoses={setPeakPoses}
-                  timing={timing}
-                  transitions={transitions}
-                  repetitions={repetitions}
+                      level={level}
+                      onPosesChange={setSequence}
+                      peakPoses={peakPoses}
+                      setPeakPoses={setPeakPoses}
+                      timing={timing}
+                      transitions={transitions}
+                      repetitions={repetitions}
                   enabledFeatures={enabledFeatures}
                   onEnabledFeaturesChange={setEnabledFeatures}
-                />
+                    />
               </motion.div>
             )}
           </AnimatePresence>
@@ -1502,7 +1502,7 @@ function GenerateContent() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
                   <p className="text-gray-400">Analyzing your sequence...</p>
-                </div>
+    </div>
               ) : aiSuggestions.length > 0 ? (
                 <div className="space-y-4">
                   {aiSuggestions.slice(0, 3).map((suggestion, index) => {
