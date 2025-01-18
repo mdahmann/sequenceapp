@@ -11,7 +11,7 @@ interface SavedSequence {
   name: string;
   duration: number;
   level: string;
-  focus: string;
+  focus: string[];
   poses: YogaPose[];
   created_at: string;
 }
@@ -84,6 +84,11 @@ export default function SavedPage() {
     router.push(`/generate?edit=${id}`);
   };
 
+  const formatFocusAreas = (focus: string[]) => {
+    if (!Array.isArray(focus)) return '';
+    return focus.join(' • ');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -136,18 +141,26 @@ export default function SavedPage() {
                 className="bg-gray-800/50 backdrop-blur-lg p-6 rounded-2xl border border-white/10"
               >
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
+                  <div className="space-y-3 flex-grow">
+                    <h3 className="text-xl font-semibold text-white">
                       {sequence.name}
                     </h3>
-                    <div className="space-y-1">
-                      <p className="text-gray-400">Duration: {sequence.duration} minutes</p>
-                      <p className="text-gray-400">Level: {sequence.level}</p>
-                      <p className="text-gray-400">Focus: {sequence.focus}</p>
-                      <p className="text-gray-400">Poses: {sequence.poses.length}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30">
+                        {sequence.duration} minutes
+                      </span>
+                      <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm border border-purple-500/30">
+                        {sequence.level}
+                      </span>
+                      <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
+                        {sequence.poses.length} poses
+                      </span>
                     </div>
+                    <p className="text-gray-400 text-sm">
+                      Focus: {formatFocusAreas(sequence.focus)}
+                    </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 ml-4">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
