@@ -134,6 +134,7 @@ export default function SavedPage() {
         const { data, error } = await supabase
           .from('sequences')
           .select('*')
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
