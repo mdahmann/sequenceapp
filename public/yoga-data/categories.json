@@ -1,0 +1,600 @@
+[
+  {
+    "id": 1,
+    "category_name": "Core Work Poses",
+    "category_description": "Collection of core work poses",
+    "poses": [
+      {
+        "id": 1,
+        "english_name": "Boat",
+        "sanskrit_name": "Navasana",
+        "sanskrit_name_adapted": "Navasana",
+        "translation_name": "nava = boat, asana = pose",
+        "pose_description": "Balance on the sitting bones with legs lifted, forming a V-shape with the body. Arms parallel to the ground or reaching toward the feet.",
+        "pose_benefits": "Strengthens core muscles, improves balance and digestion, stimulates kidneys, thyroid and prostate glands, helps relieve stress.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Core Work Poses"
+      },
+      {
+        "id": 2,
+        "english_name": "Half-Boat",
+        "sanskrit_name": "Ardha Navasana",
+        "sanskrit_name_adapted": "Ardha Navasana",
+        "translation_name": "ardha = half, nava = boat, asana = pose",
+        "pose_description": "Similar to Boat Pose but with bent knees, shins parallel to the ground, forming a less intense V-shape.",
+        "pose_benefits": "Builds core strength, improves balance and concentration, helps relieve stress, gentler on the lower back.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Core Work Poses"
+      },
+      {
+        "id": 26,
+        "english_name": "Plank",
+        "sanskrit_name": "Phalakasana",
+        "sanskrit_name_adapted": "Phalakasana",
+        "translation_name": "phalaka = plank, asana = pose",
+        "pose_description": "Hold body in straight line from head to heels, supported by hands and toes.",
+        "pose_benefits": "Strengthens core, arms, and wrists, improves posture and balance.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Core Work Poses"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "category_name": "Backbends Poses",
+    "category_description": "Collection of backbends poses",
+    "poses": [
+      {
+        "id": 3,
+        "english_name": "Bow",
+        "sanskrit_name": "Dhanurasana",
+        "sanskrit_name_adapted": "Dhanurasana",
+        "translation_name": "dhanu = bow, asana = pose",
+        "pose_description": "Lie on the belly, bend knees, reach back to hold ankles, lift chest and legs to form a bow shape.",
+        "pose_benefits": "Opens chest and shoulders, strengthens back muscles, improves posture and flexibility, stimulates digestive organs.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Backbends Poses"
+      },
+      {
+        "id": 4,
+        "english_name": "Bridge",
+        "sanskrit_name": "Setu Bandha Sarvangasana",
+        "sanskrit_name_adapted": "Setu Bandha Sarvangasana",
+        "translation_name": "setu bandha = bridge lock, sarvanga = all limbs, asana = pose",
+        "pose_description": "Lie on the back, bend knees, feet flat on the ground. Lift hips, rolling the spine off the floor, and clasp hands beneath the pelvis.",
+        "pose_benefits": "Stretches spine and chest, strengthens back muscles, improves posture, can help relieve anxiety and fatigue.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Backbends Poses"
+      },
+      {
+        "id": 6,
+        "english_name": "Camel",
+        "sanskrit_name": "Ustrasana",
+        "sanskrit_name_adapted": "Ustrasana",
+        "translation_name": "ustra = camel, asana = pose",
+        "pose_description": "Kneel with knees hip-width apart, reach back to hold heels, arch spine and lift chest toward ceiling.",
+        "pose_benefits": "Opens chest and shoulders, improves posture, stimulates digestive and endocrine systems, increases energy.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Backbends Poses"
+      },
+      {
+        "id": 43,
+        "english_name": "Upward-Facing Dog",
+        "sanskrit_name": "Urdhva Mukha Svsnssana",
+        "sanskrit_name_adapted": "Urdhva Mukha Svsnssana",
+        "translation_name": "urdhva = upward, mukha = face, svana = dog, asana = pose",
+        "pose_description": "Lie on belly, straighten arms to lift chest and hips off ground, thighs lifted.",
+        "pose_benefits": "Strengthens spine and arms, opens chest and lungs, improves posture.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Backbends Poses"
+      },
+      {
+        "id": 47,
+        "english_name": "Wheel",
+        "sanskrit_name": "Urdhva Dhanurasana",
+        "sanskrit_name_adapted": "Urdhva Dhanurasana",
+        "translation_name": "urdhva = upward, dhanu = bow, asana = pose",
+        "pose_description": "Lie on back, bend knees with feet flat on ground. Place hands by ears, fingers pointing toward shoulders. Press into hands and feet to lift entire body off the ground, arching into a backbend.",
+        "pose_benefits": "Strengthens arms, wrists, legs, buttocks, abs, and spine. Stretches chest and lungs. Increases energy and counteracts depression. Therapeutic for asthma, back pain, infertility, and osteoporosis.",
+        "difficulty_level": "Expert",
+        "category_name": "Backbends Poses"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "category_name": "Seated Poses",
+    "category_description": "Collection of seated poses",
+    "poses": [
+      {
+        "id": 5,
+        "english_name": "Butterfly",
+        "sanskrit_name": "Baddha Konasana",
+        "sanskrit_name_adapted": "Baddha Konasana",
+        "translation_name": "baddha = bound, kona = angle, asana = pose",
+        "pose_description": "Sitting with soles of feet together, knees bent out to sides, hands holding feet or ankles. Spine straight, gently press knees toward ground.",
+        "pose_benefits": "Opens hips and groin, improves flexibility in inner thighs, can help with menstruation and sciatica.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Seated Poses"
+      },
+      {
+        "id": 30,
+        "english_name": "Seated Forward Bend",
+        "sanskrit_name": "Paschimottanasana",
+        "sanskrit_name_adapted": "Paschimottanasana",
+        "translation_name": "paschi = west, uttana = intense stretch, asana = pose",
+        "pose_description": "Sit with legs extended, fold forward from hips, reaching for feet.",
+        "pose_benefits": "Stretches entire back body, calms mind, improves digestion.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Seated Poses"
+      },
+      {
+        "id": 31,
+        "english_name": "Lotus",
+        "sanskrit_name": "Padmasana",
+        "sanskrit_name_adapted": "Padmasana",
+        "translation_name": "padma = lotus, asana = pose",
+        "pose_description": "Sit cross-legged with each foot placed on opposite thigh.",
+        "pose_benefits": "Opens hips, calms mind, improves posture and concentration.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Seated Poses"
+      },
+      {
+        "id": 32,
+        "english_name": "Half Lord of the Fishes",
+        "sanskrit_name": "Ardha Matsyendrasana",
+        "sanskrit_name_adapted": "Ardha Matsyendrasana",
+        "translation_name": "ardha = half, matsya = fish, indra = ruler, asana = pose",
+        "pose_description": "Sit with one leg crossed, other foot outside opposite thigh. Twist toward raised knee.",
+        "pose_benefits": "Improves spine mobility, aids digestion, energizes body.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Seated Poses"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "category_name": "Other Poses",
+    "category_description": "Collection of other poses",
+    "poses": [
+      {
+        "id": 7,
+        "english_name": "Cat",
+        "sanskrit_name": "Marjaryasana",
+        "sanskrit_name_adapted": "Marjaryasana",
+        "translation_name": "marjari = cat, asana = pose",
+        "pose_description": "Start on hands and knees, round spine toward ceiling while dropping head and tailbone.",
+        "pose_benefits": "Improves spine flexibility, relieves back pain, calms mind, good for stress relief.",
+        "difficulty_level": "Beginner",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 8,
+        "english_name": "Cow",
+        "sanskrit_name": "Bitilasana",
+        "sanskrit_name_adapted": "Bitilasana",
+        "translation_name": "bitila = cow, asana = pose",
+        "pose_description": "Start on hands and knees, arch back while lifting head and tailbone.",
+        "pose_benefits": "Improves posture and balance, coordinates breathing, calms mind, massages spine.",
+        "difficulty_level": "Beginner",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 9,
+        "english_name": "Chair",
+        "sanskrit_name": "Utkatasana",
+        "sanskrit_name_adapted": "Utkatasana",
+        "translation_name": "utkata = fierce, asana = pose",
+        "pose_description": "Stand with feet together, bend knees and sink hips as if sitting in a chair, arms raised overhead.",
+        "pose_benefits": "Strengthens thighs, calves, and ankles, stretches chest and shoulders, stimulates heart and diaphragm.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 12,
+        "english_name": "Crescent Lunge",
+        "sanskrit_name": "Alanasana",
+        "sanskrit_name_adapted": "Alanasana",
+        "translation_name": "alana = crescent moon, asana = pose",
+        "pose_description": "Step one foot forward into a lunge, back heel lifted. Raise arms overhead, back knee off the ground.",
+        "pose_benefits": "Stretches hip flexors and quadriceps, strengthens legs, improves balance and stability.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 14,
+        "english_name": "Dolphin",
+        "sanskrit_name": "Ardha Pincha Mayurasana",
+        "sanskrit_name_adapted": "Ardha Pincha Mayurasana",
+        "translation_name": "ardha = half, pincha = feather, mayura = peacock, asana = pose",
+        "pose_description": "Similar to Downward-Facing Dog but on forearms instead of hands. Elbows shoulder-width apart, forearms pressed into mat.",
+        "pose_benefits": "Strengthens shoulders and core, stretches spine and hamstrings, calms mind, good preparation for headstand.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 15,
+        "english_name": "Downward-Facing Dog",
+        "sanskrit_name": "Adho Mukha Svanasana",
+        "sanskrit_name_adapted": "Adho Mukha Svanasana",
+        "translation_name": "adho = downward, mukha = face, svana = dog, asana = pose",
+        "pose_description": "Form an inverted V-shape with the body, hands and feet pressing into the ground, hips lifted toward ceiling.",
+        "pose_benefits": "Stretches entire back body, strengthens arms and legs, calms mind, relieves stress.",
+        "difficulty_level": "Beginner",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 17,
+        "english_name": "Extended Hand to Toe",
+        "sanskrit_name": "Utthita Hasta Padangusthasana",
+        "sanskrit_name_adapted": "Utthita Hasta Padangusthasana",
+        "translation_name": "utthita = extended, hasta = hand, pada = foot, angusta = big toe, asana = pose",
+        "pose_description": "Standing on one leg, hold big toe of other foot and extend leg forward. Can also be done to the side.",
+        "pose_benefits": "Improves balance and concentration, stretches hamstrings and calves, strengthens legs.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 18,
+        "english_name": "Extended Side Angle",
+        "sanskrit_name": "Utthita Parsvakonasana",
+        "sanskrit_name_adapted": "Utthita Parsvakonasana",
+        "translation_name": "utthita = extended, parsva = side, kona = angle, asana = pose",
+        "pose_description": "From Warrior II, lower front arm to rest on thigh or floor, extend other arm over ear.",
+        "pose_benefits": "Stretches sides of body, strengthens legs, improves stamina and concentration.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 23,
+        "english_name": "Low Lunge",
+        "sanskrit_name": "Anjaneyasana",
+        "sanskrit_name_adapted": "Anjaneyasana",
+        "translation_name": "anjaneya = devotee of Lord Rama, asana = pose",
+        "pose_description": "Step one foot forward between hands, lower back knee to ground. Can keep hands on ground or lift torso.",
+        "pose_benefits": "Stretches hip flexors and quadriceps, strengthens legs, improves balance.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 35,
+        "english_name": "Sphinx",
+        "sanskrit_name": "Salamba Bhujangasana",
+        "sanskrit_name_adapted": "Salamba Bhujangasana",
+        "translation_name": "salamba = supported, bhujanga = cobra, asana = pose",
+        "pose_description": "Lie on belly, prop upper body on forearms, legs extended behind.",
+        "pose_benefits": "Strengthens spine, opens chest and lungs, improves posture.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 36,
+        "english_name": "Splits",
+        "sanskrit_name": "Hanumanasana",
+        "sanskrit_name_adapted": "Hanumanasana",
+        "translation_name": "hanumat = monkey deity, asana = pose",
+        "pose_description": "Extend legs in opposite directions until they form a straight line on the ground.",
+        "pose_benefits": "Increases flexibility in hips and hamstrings, improves balance.",
+        "difficulty_level": "Expert",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 39,
+        "english_name": "Crescent Moon",
+        "sanskrit_name": "Ashta Chandrasana",
+        "sanskrit_name_adapted": "Ashta Chandrasana",
+        "translation_name": "ashta = eight, chandra = moon, asana = pose",
+        "pose_description": "Stand with arms overhead, interlace fingers and stretch to one side.",
+        "pose_benefits": "Stretches sides of body, improves flexibility, energizes body.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 40,
+        "english_name": "Side Splits",
+        "sanskrit_name": "Upavistha Konasana",
+        "sanskrit_name_adapted": "Upavistha Konasana",
+        "translation_name": "upavistha = seated, kona = angle, asana = pose",
+        "pose_description": "Sit with legs extended out to sides as wide as possible.",
+        "pose_benefits": "Opens hips and groin, improves flexibility, builds strength.",
+        "difficulty_level": "Expert",
+        "category_name": "Other Poses"
+      },
+      {
+        "id": 48,
+        "english_name": "Wild Thing",
+        "sanskrit_name": "Camatkarasana",
+        "sanskrit_name_adapted": "Camatkarasana",
+        "translation_name": "camatkar = miracle, asana = pose",
+        "pose_description": "From side plank, flip over by lifting hips and reaching top arm back to floor.",
+        "pose_benefits": "Opens chest and shoulders, strengthens arms and core, energizes body.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Other Poses"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "category_name": "Forward Bends Poses",
+    "category_description": "Collection of forward bends poses",
+    "poses": [
+      {
+        "id": 10,
+        "english_name": "Child's Pose",
+        "sanskrit_name": "Balasana",
+        "sanskrit_name_adapted": "Balasana",
+        "translation_name": "bala = child, asana = pose",
+        "pose_description": "Kneel and sit back on heels, fold forward with arms extended or by sides, forehead resting on floor.",
+        "pose_benefits": "Gently stretches back, hips, and thighs, calms mind, relieves stress and fatigue.",
+        "difficulty_level": "Beginner",
+        "category_name": "Forward Bends Poses"
+      },
+      {
+        "id": 20,
+        "english_name": "Forward Bend with Shoulder Opener",
+        "sanskrit_name": "Uttanasana",
+        "sanskrit_name_adapted": "Uttanasana",
+        "translation_name": "uttana = intense stretch, asana = pose",
+        "pose_description": "Forward fold with hands clasped behind back, arms lifted away from body.",
+        "pose_benefits": "Stretches hamstrings and spine, opens shoulders and chest, calms nervous system.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Forward Bends Poses"
+      },
+      {
+        "id": 28,
+        "english_name": "Pyramid",
+        "sanskrit_name": "Parsvottanasana",
+        "sanskrit_name_adapted": "Parsvottanasana",
+        "translation_name": "parsvottana = intense side stretch, asana = pose",
+        "pose_description": "Stand with one foot forward, back foot at angle. Fold forward over front leg with straight spine.",
+        "pose_benefits": "Stretches hamstrings and calves, improves balance, calms mind.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Forward Bends Poses"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "category_name": "Restorative Poses",
+    "category_description": "Collection of restorative poses",
+    "poses": [
+      {
+        "id": 11,
+        "english_name": "Corpse",
+        "sanskrit_name": "Sivasana",
+        "sanskrit_name_adapted": "Sivasana",
+        "translation_name": "siva = corpse, asana = pose",
+        "pose_description": "Lie flat on back with arms and legs extended, palms facing up, completely relaxed.",
+        "pose_benefits": "Calms central nervous system, promotes deep relaxation, reduces stress and anxiety, improves sleep.",
+        "difficulty_level": "Beginner",
+        "category_name": "Restorative Poses"
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "category_name": "Balancing Poses",
+    "category_description": "Collection of balancing poses",
+    "poses": [
+      {
+        "id": 13,
+        "english_name": "Crow",
+        "sanskrit_name": "Bakasana",
+        "sanskrit_name_adapted": "Bakasana",
+        "translation_name": "baka = crow, asana = pose",
+        "pose_description": "Squat with hands planted on the ground, knees resting on upper arms. Shift weight forward until feet lift off ground.",
+        "pose_benefits": "Strengthens arms, wrists, and core, improves balance and focus, builds confidence.",
+        "difficulty_level": "Expert",
+        "category_name": "Balancing Poses"
+      },
+      {
+        "id": 19,
+        "english_name": "Forearm Stand",
+        "sanskrit_name": "Pincha Mayurasana",
+        "sanskrit_name_adapted": "Pincha Mayurasana",
+        "translation_name": "pincha = feather, mayura = peacock, asana = pose",
+        "pose_description": "Balance on forearms with legs extended up toward ceiling. Similar to handstand but on forearms.",
+        "pose_benefits": "Strengthens shoulders and core, improves balance and focus, builds confidence.",
+        "difficulty_level": "Expert",
+        "category_name": "Balancing Poses"
+      },
+      {
+        "id": 21,
+        "english_name": "Half-Moon",
+        "sanskrit_name": "Ardha Chandrasana",
+        "sanskrit_name_adapted": "Ardha Chandrasana",
+        "translation_name": "ardha = half, chandra = moon, asana = pose",
+        "pose_description": "Balance on one hand and foot, other leg extended parallel to ground, top arm reaching to ceiling.",
+        "pose_benefits": "Improves balance and coordination, strengthens legs and core, opens hips and chest.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Balancing Poses"
+      },
+      {
+        "id": 22,
+        "english_name": "Handstand",
+        "sanskrit_name": "Adho Mukha Vrksasana",
+        "sanskrit_name_adapted": "Adho Mukha Vrksasana",
+        "translation_name": "adho = downward, mukha = face, vrksa = tree, asana = pose",
+        "pose_description": "Balance on hands with body inverted, legs straight up toward ceiling.",
+        "pose_benefits": "Builds upper body strength, improves balance and focus, increases confidence.",
+        "difficulty_level": "Expert",
+        "category_name": "Balancing Poses"
+      },
+      {
+        "id": 34,
+        "english_name": "Side Plank",
+        "sanskrit_name": "Vasisthasana",
+        "sanskrit_name_adapted": "Vasisthasana",
+        "translation_name": "vasistha = sage, asana = pose",
+        "pose_description": "From plank, rotate onto one hand and edge of feet, lift other arm to ceiling.",
+        "pose_benefits": "Strengthens arms, wrists, and core, improves balance and focus.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Balancing Poses"
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "category_name": "Standing Poses",
+    "category_description": "Collection of standing poses",
+    "poses": [
+      {
+        "id": 16,
+        "english_name": "Eagle",
+        "sanskrit_name": "Garudasana",
+        "sanskrit_name_adapted": "Garudasana",
+        "translation_name": "garuda = eagle, asana = pose",
+        "pose_description": "Stand on one leg, other leg wrapped around standing leg. Arms wrapped in front of face.",
+        "pose_benefits": "Improves balance and focus, stretches shoulders and hips, strengthens legs.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 29,
+        "english_name": "Reverse Warrior",
+        "sanskrit_name": "Parsva Virabhadrasana",
+        "sanskrit_name_adapted": "Parsva Virabhadrasana",
+        "translation_name": "viparita = reversed, virabhadra = warrior, asana = pose",
+        "pose_description": "From Warrior II, back bend while sliding back hand down leg, front arm reaching overhead.",
+        "pose_benefits": "Stretches sides of body, strengthens legs, improves flexibility and balance.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 38,
+        "english_name": "Standing Forward Bend",
+        "sanskrit_name": "Uttanasana",
+        "sanskrit_name_adapted": "Uttanasana",
+        "translation_name": "uttana = intense stretch, asana = pose",
+        "pose_description": "Fold forward from hips with straight legs, bringing head toward shins.",
+        "pose_benefits": "Stretches entire back body, calms nervous system, relieves stress.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 41,
+        "english_name": "Tree",
+        "sanskrit_name": "Vrksasana",
+        "sanskrit_name_adapted": "Vrksasana",
+        "translation_name": "vrksa = tree, asana = pose",
+        "pose_description": "Stand on one leg, other foot pressed into inner thigh or calf. Arms raised overhead like branches.",
+        "pose_benefits": "Improves balance and focus, strengthens legs and core, calms mind.",
+        "difficulty_level": "Beginner",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 42,
+        "english_name": "Triangle",
+        "sanskrit_name": "Trikonasana",
+        "sanskrit_name_adapted": "Trikonasana",
+        "translation_name": "tri = three, kona = angle, asana = pose",
+        "pose_description": "Stand with legs wide, front foot facing forward. Hinge at hip to reach front hand to shin, other arm to ceiling.",
+        "pose_benefits": "Stretches legs, hips, and spine, strengthens core, improves balance.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 44,
+        "english_name": "Warrior One",
+        "sanskrit_name": "Virabhadrasana One",
+        "sanskrit_name_adapted": "Virabhadrasana One",
+        "translation_name": "virabhadra = warrior, asana = pose",
+        "pose_description": "Lunge with back foot at 45-degree angle, front knee bent. Arms raised overhead, chest facing forward.",
+        "pose_benefits": "Strengthens legs and core, opens hips and chest, improves focus and stability.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 45,
+        "english_name": "Warrior Two",
+        "sanskrit_name": "Virabhadrasana Two",
+        "sanskrit_name_adapted": "Virabhadrasana Two",
+        "translation_name": "virabhadra = warrior, asana = pose",
+        "pose_description": "Lunge with back foot parallel to back edge of mat. Arms extended to sides, gaze over front hand.",
+        "pose_benefits": "Strengthens legs, opens hips and chest, improves concentration and stamina.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      },
+      {
+        "id": 46,
+        "english_name": "Warrior Three",
+        "sanskrit_name": "Virabhadrasana Three",
+        "sanskrit_name_adapted": "Virabhadrasana Three",
+        "translation_name": "virabhadra = warrior, asana = pose",
+        "pose_description": "Balance on one leg, torso parallel to ground, back leg lifted. Arms can be in various positions.",
+        "pose_benefits": "Strengthens legs and core, improves balance and posture, builds focus.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Standing Poses"
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "category_name": "Hip Openers Poses",
+    "category_description": "Collection of hip openers poses",
+    "poses": [
+      {
+        "id": 24,
+        "english_name": "Pigeon",
+        "sanskrit_name": "Supta Kapotasana",
+        "sanskrit_name_adapted": "Supta Kapotasana",
+        "translation_name": "kapota = pigeon, asana = pose",
+        "pose_description": "From all fours, bring one knee forward behind wrist, extend back leg. Fold forward or stay upright.",
+        "pose_benefits": "Opens hip flexors and rotators, stretches thighs and groin, releases tension.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Hip Openers Poses"
+      },
+      {
+        "id": 25,
+        "english_name": "King Pigeon",
+        "sanskrit_name": "Eka Pada Rajakapotasana",
+        "sanskrit_name_adapted": "Eka Pada Rajakapotasana",
+        "translation_name": "eka = one, pada = foot, raja = king, kapota = pigeon, asana = pose",
+        "pose_description": "From Pigeon pose, bend back knee and hold foot with hands, lifting chest toward ceiling.",
+        "pose_benefits": "Deep hip and back bend, opens chest and shoulders, improves flexibility.",
+        "difficulty_level": "Expert",
+        "category_name": "Hip Openers Poses"
+      },
+      {
+        "id": 37,
+        "english_name": "Squat",
+        "sanskrit_name": "Malasana",
+        "sanskrit_name_adapted": "Malasana",
+        "translation_name": "mala = garland, asana = pose",
+        "pose_description": "Lower hips toward ground with feet flat, keeping spine straight.",
+        "pose_benefits": "Opens hips and groin, strengthens legs, improves digestion.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Hip Openers Poses"
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "category_name": "Inversions Poses",
+    "category_description": "Collection of inversions poses",
+    "poses": [
+      {
+        "id": 27,
+        "english_name": "Plow",
+        "sanskrit_name": "Halasana",
+        "sanskrit_name_adapted": "Halasana",
+        "translation_name": "hala = plow, asana = pose",
+        "pose_description": "Lie on back, lift legs over head until toes touch floor behind head.",
+        "pose_benefits": "Stretches spine and shoulders, calms nervous system, helps with insomnia.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Inversions Poses"
+      },
+      {
+        "id": 33,
+        "english_name": "Shoulder Stand",
+        "sanskrit_name": "Salamba Sarvangasana",
+        "sanskrit_name_adapted": "Salamba Sarvangasana",
+        "translation_name": "salamba = supported, sarvanga = all limbs, asana = pose",
+        "pose_description": "Lie on back, lift legs and torso, support back with hands, balance on shoulders.",
+        "pose_benefits": "Stimulates thyroid, improves circulation, calms nervous system.",
+        "difficulty_level": "Intermediate",
+        "category_name": "Inversions Poses"
+      }
+    ]
+  }
+]
