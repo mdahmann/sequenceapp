@@ -97,7 +97,7 @@ export default function SavedPage() {
       }
     }
     
-    if (filters.peakPose) {
+    if (filters.peakPose && sequence.peak_poses) {
       const peakPoses = parsePeakPoses(sequence.peak_poses);
       if (!peakPoses.some(p => p.english_name === filters.peakPose)) {
         return false;
@@ -115,8 +115,11 @@ export default function SavedPage() {
         const focusArray = parseFocus(sequence.focus);
         if (!focusArray.some(f => f === filters.focus)) return false;
       }
-      if (currentFilter !== 'peakPose' && filters.peakPose && (!sequence.peak_poses || !sequence.peak_poses.some(p => p.english_name === filters.peakPose))) {
-        return false;
+      if (currentFilter !== 'peakPose' && filters.peakPose && sequence.peak_poses) {
+        const peakPoses = parsePeakPoses(sequence.peak_poses);
+        if (!peakPoses.some(p => p.english_name === filters.peakPose)) {
+          return false;
+        }
       }
       return true;
     });

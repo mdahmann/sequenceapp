@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { YogaPose } from '@/lib/data/poses';
 import { Dialog } from '@headlessui/react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import SequencePoseManager from '@/components/SequencePoseManager';
 
 interface GeneratePageProps {}
@@ -385,6 +386,7 @@ function GenerateContent() {
     setTransitions([]);
     setRepetitions({});
     setShowFilters(false);
+    setError('');
 
     try {
       const focusPosesData = peakPoses.map(pose => ({
@@ -403,6 +405,10 @@ function GenerateContent() {
         category: pose.category_name,
         description: pose.pose_description
       }));
+
+      if (!availablePosesData.length) {
+        throw new Error('No poses available for sequence generation');
+      }
 
       const poseRange = calculatePoseRange(duration);
 
@@ -423,14 +429,23 @@ function GenerateContent() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate sequence');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate sequence');
       }
 
       const data = await response.json();
       
+      if (!data.sequence || !Array.isArray(data.sequence) || data.sequence.length === 0) {
+        throw new Error('No poses returned in the sequence');
+      }
+
       let generatedSequence = data.sequence
         .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
         .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
+
+      if (generatedSequence.length === 0) {
+        throw new Error('No valid poses found in the generated sequence');
+      }
 
       // If sequence is too short, add complementary poses
       if (generatedSequence.length < poseRange.minimum_poses) {
@@ -445,25 +460,28 @@ function GenerateContent() {
             level,
             poses_needed: poseRange.minimum_poses - generatedSequence.length,
             target_duration_minutes: duration,
-            available_poses: poses.map((pose: YogaPose) => ({
-              id: pose.id,
-              name: pose.english_name,
-              sanskrit_name: pose.sanskrit_name,
-              difficulty: pose.difficulty_level,
-              category: pose.category_name,
-              description: pose.pose_description
-            }))
+            available_poses: availablePosesData
           }),
         });
 
         if (!complementaryPoses.ok) {
-          throw new Error('Failed to get complementary poses');
+          const errorData = await complementaryPoses.json();
+          throw new Error(errorData.error || 'Failed to get complementary poses');
         }
 
         const complementaryData = await complementaryPoses.json();
+        
+        if (!complementaryData.poses || !Array.isArray(complementaryData.poses)) {
+          throw new Error('Invalid complementary poses response');
+        }
+
         const additionalPoses = complementaryData.poses
           .map((poseId: number) => poses.find((p: YogaPose) => p.id === poseId))
           .filter((pose: YogaPose | undefined): pose is YogaPose => pose !== undefined);
+
+        if (additionalPoses.length === 0 && complementaryData.poses.length > 0) {
+          throw new Error('No valid complementary poses found');
+        }
 
         // Add the complementary poses to the sequence
         generatedSequence = [...generatedSequence, ...additionalPoses];
@@ -482,12 +500,15 @@ function GenerateContent() {
           }),
         });
 
-        if (timingResponse.ok) {
-          const timingData = await timingResponse.json();
-          setTiming(timingData.timing || []);
-          setTransitions(timingData.transitions || []);
-          setRepetitions(timingData.repetitions || {});
+        if (!timingResponse.ok) {
+          const errorData = await timingResponse.json();
+          throw new Error(errorData.error || 'Failed to generate timing and transitions');
         }
+
+        const timingData = await timingResponse.json();
+        setTiming(timingData.timing || []);
+        setTransitions(timingData.transitions || []);
+        setRepetitions(timingData.repetitions || {});
       } else {
         setTiming(data.timing || []);
         setTransitions(data.transitions || []);
@@ -1009,20 +1030,20 @@ function GenerateContent() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: isGenerating ? 0 : 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="container mx-auto px-4 py-8 space-y-8"
+        className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8"
       >
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+        <div className="text-center space-y-3 sm:space-y-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
             {editingSequenceId ? 'Edit Sequence' : 'Generate Sequence'}
           </h1>
-          <p className="text-xl text-gray-400">
+          <p className="text-lg sm:text-xl text-gray-400">
             {editingSequenceId 
               ? 'Modify your existing sequence or regenerate a new one with the same settings' 
               : 'Create a personalized yoga sequence'}
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
           {error && (
             <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300">
               {error}
@@ -1058,9 +1079,9 @@ function GenerateContent() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="space-y-6 bg-gray-800/50 backdrop-blur-lg p-8 rounded-2xl border border-white/10"
+                className="space-y-6 bg-gray-800/50 backdrop-blur-lg p-4 sm:p-8 rounded-2xl border border-white/10"
               >
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <label className="block text-sm font-medium text-gray-300">
                     Duration (minutes)
                   </label>
@@ -1076,18 +1097,18 @@ function GenerateContent() {
                   <div className="text-center text-gray-400">{duration} minutes</div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <label className="block text-sm font-medium text-gray-300">
                     Experience Level
                   </label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
                     {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
                       <motion.button
                         key={l}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setLevel(l)}
-                        className={`p-3 rounded-xl border ${
+                        className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
                           level === l
                             ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
                             : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
@@ -1103,7 +1124,7 @@ function GenerateContent() {
                   <label className="text-sm font-medium text-gray-300">
                     Focus Areas
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {focusOptions.map((option) => (
                       <motion.button
                         key={option}
@@ -1116,7 +1137,7 @@ function GenerateContent() {
                               : [...prev, option]
                           );
                         }}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                           focus.includes(option)
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-white/5 text-gray-400 hover:bg-white/10'
@@ -1128,36 +1149,37 @@ function GenerateContent() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">
+                <div className="space-y-3 sm:space-y-4">
+                  <label className="block text-sm font-medium text-gray-300">
                     Peak Poses
                   </label>
                   <div className="space-y-2">
                     {peakPoses.map((pose) => (
-                      <div 
+                      <div
                         key={pose.english_name}
-                        className="p-3 bg-blue-500/20 border border-blue-500/30 rounded-xl"
+                        className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
                       >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-white font-medium">{pose.english_name}</p>
-                            <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                          </div>
-                          <button
-                            onClick={() => handleRemovePeakPose(pose)}
-                            className="text-gray-400 hover:text-red-400"
-                          >
-                            Remove
-                          </button>
+                        <div>
+                          <div className="font-medium text-white">{pose.english_name}</div>
+                          <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
                         </div>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleRemovePeakPose(pose)}
+                          className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </motion.button>
                       </div>
                     ))}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setIsModalOpen(true)}
-                      className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors"
+                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
                     >
+                      <PlusIcon className="w-5 h-5" />
                       Add Peak Pose
                     </motion.button>
                   </div>
@@ -1171,7 +1193,7 @@ function GenerateContent() {
                     generateSequence();
                   }}
                   disabled={isGenerating}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl px-6 py-3 font-medium transition-colors disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl px-4 sm:px-6 py-3 font-medium transition-colors disabled:opacity-50"
                 >
                   Generate Sequence
                 </motion.button>
@@ -1189,9 +1211,9 @@ function GenerateContent() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-2xl font-bold text-white">
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <h2 className="text-xl sm:text-2xl font-bold text-white">
                         Your Generated Sequence
                       </h2>
                       <motion.button
@@ -1213,12 +1235,12 @@ function GenerateContent() {
                       whileTap={{ scale: hasChanges ? 0.98 : 1 }}
                       onClick={handleSaveSequence}
                       disabled={isSaving || !hasChanges}
-                      className={`bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium transition-colors ${
+                      className={`w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium transition-colors ${
                         !hasChanges ? 'opacity-50 cursor-not-allowed from-gray-500 to-gray-600' : 'hover:from-blue-600 hover:to-purple-600'
                       }`}
                     >
                       {isSaving ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           <span>Saving...</span>
                         </div>
@@ -1227,42 +1249,23 @@ function GenerateContent() {
                       )}
                     </motion.button>
                   </div>
-
-                  <div className="space-y-8">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-300">
-                        Sequence Title
-                      </label>
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter a title for your sequence"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
-                    </div>
-
-                    {saveError && (
-                      <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300">
-                        {saveError}
-                      </div>
-                    )}
-
-                    <SequencePoseManager
-                      poses={sequence}
-                      allPoses={poses}
-                      level={level}
-                      onPosesChange={setSequence}
-                      peakPoses={peakPoses}
-                      setPeakPoses={setPeakPoses}
-                      timing={timing}
-                      transitions={transitions}
-                      repetitions={repetitions}
-                      enabledFeatures={enabledFeatures}
-                      onEnabledFeaturesChange={setEnabledFeatures}
-                    />
-                  </div>
                 </div>
+
+                {sequence && (
+                  <SequencePoseManager
+                    poses={sequence}
+                    allPoses={poses}
+                    level={level}
+                    onPosesChange={setSequence}
+                    peakPoses={peakPoses}
+                    setPeakPoses={setPeakPoses}
+                    timing={timing}
+                    transitions={transitions}
+                    repetitions={repetitions}
+                    enabledFeatures={enabledFeatures}
+                    onEnabledFeaturesChange={setEnabledFeatures}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
