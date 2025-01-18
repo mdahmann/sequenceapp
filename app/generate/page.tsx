@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +10,7 @@ import SequencePoseManager from '@/components/SequencePoseManager';
 
 interface GeneratePageProps {}
 
-export default function GeneratePage({}: GeneratePageProps) {
+function GenerateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editingSequenceId = searchParams.get('edit');
@@ -594,5 +594,23 @@ export default function GeneratePage({}: GeneratePageProps) {
         </div>
       </Dialog>
     </div>
+  );
+}
+
+export default function GeneratePage({}: GeneratePageProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-8 bg-gray-800/50 backdrop-blur-lg p-8 rounded-2xl border border-white/10">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+              Loading...
+            </h2>
+          </div>
+        </div>
+      </div>
+    }>
+      <GenerateContent />
+    </Suspense>
   );
 } 
