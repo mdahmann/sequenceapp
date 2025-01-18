@@ -11,6 +11,11 @@ import SequencePoseManager from '@/components/SequencePoseManager';
 
 interface GeneratePageProps {}
 
+interface Suggestion {
+  title: string;
+  description: string;
+}
+
 function GenerateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,7 +68,7 @@ function GenerateContent() {
   } | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<Suggestion[]>([]);
   const [isLoadingAiSuggestions, setIsLoadingAiSuggestions] = useState(false);
   const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
   const [hasLoadedSuggestions, setHasLoadedSuggestions] = useState(false);
@@ -183,11 +188,22 @@ function GenerateContent() {
         }
 
         // Load poses from Supabase
+        console.log('Fetching poses from Supabase...');
         const { data: posesData, error: posesError } = await supabase
           .from('poses')
           .select('*');
 
-        if (posesError) throw posesError;
+        if (posesError) {
+          console.error('Error fetching poses:', posesError);
+          throw posesError;
+        }
+
+        if (!posesData || posesData.length === 0) {
+          console.error('No poses found in the database');
+          throw new Error('No poses found in the database');
+        }
+
+        console.log(`Successfully loaded ${posesData.length} poses`);
         setPoses(posesData);
 
         // If a pose ID was provided, add it to peak poses
@@ -733,14 +749,16 @@ function GenerateContent() {
     }
   };
 
-  const handleSuggestionClick = async (suggestion: string) => {
+  const handleSuggestionClick = async (suggestionStr: string) => {
     try {
       setIsLoadingAiSuggestions(true);
-      setUsedSuggestions(prev => [...prev, suggestion]);
-      await handleReviseSequence(suggestion);
+      const suggestion = JSON.parse(suggestionStr);
+      
+      await handleReviseSequence(suggestion.title + ': ' + suggestion.description);
+      setUsedSuggestions([...usedSuggestions, suggestionStr]);
+      setIsAiModalOpen(false);
     } catch (error) {
-      console.error('Error applying suggestion:', error);
-      setError('Failed to apply suggestion');
+      console.error('Error handling suggestion:', error);
     } finally {
       setIsLoadingAiSuggestions(false);
     }
@@ -1452,15 +1470,16 @@ function GenerateContent() {
               ) : aiSuggestions.length > 0 ? (
                 <div className="space-y-4">
                   {aiSuggestions.slice(0, 3).map((suggestion, index) => {
-                    const [title, description] = suggestion.split('|').map(s => s.trim());
-                    const isUsed = usedSuggestions.includes(suggestion);
+                    const title = suggestion.title;
+                    const description = suggestion.description;
+                    const isUsed = usedSuggestions.includes(JSON.stringify(suggestion));
                     
                     return (
                       <motion.button
                         key={index}
                         whileHover={{ scale: isUsed ? 1 : 1.02 }}
                         whileTap={{ scale: isUsed ? 1 : 0.98 }}
-                        onClick={() => !isUsed && handleSuggestionClick(suggestion)}
+                        onClick={() => !isUsed && handleSuggestionClick(JSON.stringify(suggestion))}
                         className={`w-full p-4 border rounded-xl transition-all group text-left ${
                           isUsed 
                             ? 'bg-gray-800/50 border-gray-700/50 cursor-not-allowed opacity-50' 
@@ -1469,7 +1488,7 @@ function GenerateContent() {
                       >
                         <div className="flex items-start gap-3">
                           <div className={`p-2 rounded-lg mt-1 ${
-                            isUsed ? 'bg-gray-700/50 text-gray-500' : 'bg-purple-500/20 text-purple-300'
+                            isUsed ? 'bg-gray-700/50 text-gray-500' : 'bg-purple-500/20 text-purple-300 group-hover:bg-purple-500/30 group-hover:text-purple-200'
                           }`}>
                             {isUsed ? (
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
