@@ -18,6 +18,7 @@
     "@heroicons/react": "^2.2.0",
     "@netlify/functions": "^3.0.0",
     "@react-icons/all-files": "^4.1.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.16",
     "@types/bcryptjs": "^2.4.6",
