@@ -52,20 +52,50 @@ SEQUENCE REQUIREMENTS:
 8. Balance different types of poses (standing, seated, twists, etc.)
 9. Consider the anatomical and energetic progression
 
+TIMING AND FLOW GUIDELINES:
+1. Each pose should have a specific duration (e.g., "5 breaths", "30 seconds", "1 minute")
+2. Include repetitions where appropriate (e.g., "3 rounds of Sun Salutation A")
+3. Create mini-flows or sequences that can be repeated (e.g., "Warrior 2 → Extended Side Angle → Reverse Warrior, repeat 3 times per side")
+4. Balance static holds with dynamic movements
+5. Include transition instructions between poses
+6. Account for both sides when poses are asymmetrical
+
 SEQUENCE STRUCTURE:
 1. Opening/Centering (2-3 minutes)
-2. Warm-up poses (15-20% of sequence)
+   - Include breathing exercises and gentle movements
+2. Warm-up (15-20% of sequence)
+   - Include Sun Salutations or similar flowing sequences
+   - Repeat sequences 2-3 times to build heat
 3. Build-up poses (20-25% of sequence)
+   - Create mini-flows that can be repeated
+   - Include progressive variations
 4. Peak poses including focus poses (30-35% of sequence)
+   - Build up to challenging poses with proper preparation
+   - Include rest between challenging sequences
 5. Counter-poses and cool-down (20-25% of sequence)
+   - Include gentle twists and forward folds
+   - Progressive relaxation
 6. Final relaxation (2-3 minutes)
+   - Savasana with optional guided relaxation
 
 AVAILABLE POSES:
 ${JSON.stringify(available_poses, null, 2)}
 
-Respond with a JSON object containing a "sequence" array of pose IDs in the correct order. Example:
+Respond with a JSON object containing:
+1. "sequence": Array of pose IDs in the correct order
+2. "timing": Array of corresponding timing instructions (e.g., "5 breaths", "30 seconds", "3 rounds")
+3. "transitions": Array of transition instructions between poses
+4. "repetitions": Object mapping pose IDs to number of repetitions or flow sequences
+
+Example:
 {
-  "sequence": [1, 4, 7, 2, 9]
+  "sequence": [1, 4, 7, 2, 9],
+  "timing": ["5 breaths", "30 seconds", "1 minute", "5 breaths", "3 rounds"],
+  "transitions": ["Exhale to fold forward", "Roll up to standing", "Step right foot back"],
+  "repetitions": {
+    "1": {"repeat": 3, "note": "Complete 3 rounds of Sun Salutation A"},
+    "4-7-2": {"repeat": 2, "note": "Flow through this sequence twice per side"}
+  }
 }
 
 The sequence should create a cohesive flow that meets all the specified requirements while maintaining appropriate difficulty progression for the selected level.`;
@@ -91,7 +121,10 @@ The sequence should create a cohesive flow that meets all the specified requirem
     const parsedResponse = JSON.parse(response);
     
     return NextResponse.json({
-      sequence: parsedResponse.sequence || []
+      sequence: parsedResponse.sequence || [],
+      timing: parsedResponse.timing || [],
+      transitions: parsedResponse.transitions || [],
+      repetitions: parsedResponse.repetitions || {}
     });
   } catch (error) {
     console.error('Error generating sequence:', error);

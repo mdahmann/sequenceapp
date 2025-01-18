@@ -50,6 +50,42 @@ export default function SavedPage() {
     return [];
   };
 
+  const parsePeakPoses = (peakPoses: string | YogaPose[] | null): YogaPose[] => {
+    if (!peakPoses) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(peakPoses)) return peakPoses;
+    
+    // If it's a string that looks like a JSON array
+    if (typeof peakPoses === 'string') {
+      try {
+        const parsed = JSON.parse(peakPoses);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    
+    return [];
+  };
+
+  const parsePoses = (poses: string | YogaPose[] | null): YogaPose[] => {
+    if (!poses) return [];
+    
+    if (Array.isArray(poses)) return poses;
+    
+    if (typeof poses === 'string') {
+      try {
+        const parsed = JSON.parse(poses);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    
+    return [];
+  };
+
   const filteredSequences = sequences.filter(sequence => {
     if (filters.duration && sequence.duration.toString() !== filters.duration) return false;
     if (filters.level && sequence.level !== filters.level) return false;
@@ -61,8 +97,11 @@ export default function SavedPage() {
       }
     }
     
-    if (filters.peakPose && (!sequence.peak_poses || !sequence.peak_poses.some(p => p.english_name === filters.peakPose))) {
-      return false;
+    if (filters.peakPose) {
+      const peakPoses = parsePeakPoses(sequence.peak_poses);
+      if (!peakPoses.some(p => p.english_name === filters.peakPose)) {
+        return false;
+      }
     }
     
     return true;
@@ -90,7 +129,9 @@ export default function SavedPage() {
       case 'focus':
         return Array.from(new Set(relevantSequences.flatMap(s => parseFocus(s.focus)))).filter(Boolean).sort();
       case 'peakPose':
-        return Array.from(new Set(relevantSequences.flatMap(s => (s.peak_poses || []).map(p => p.english_name)))).filter(Boolean).sort();
+        return Array.from(new Set(
+          relevantSequences.flatMap(s => parsePeakPoses(s.peak_poses).map(p => p.english_name))
+        )).filter(Boolean).sort();
       default:
         return [];
     }
@@ -114,9 +155,31 @@ export default function SavedPage() {
   console.log('Unique peak poses:', availablePeakPoses);
 
   const formatFocusAreas = (focus: string[] | string | null) => {
-    const focusArray = parseFocus(focus);
-    if (focusArray.length === 0) return 'No focus areas';
-    return focusArray.join(' • ');
+    if (!focus) return 'No focus areas';
+    
+    // If it's already an array, join it
+    if (Array.isArray(focus)) return focus.join(' • ');
+    
+    // If it's a string that looks like a JSON array or object
+    if (typeof focus === 'string') {
+      try {
+        const parsed = JSON.parse(focus);
+        if (Array.isArray(parsed)) {
+          return parsed.join(' • ');
+        }
+        // If it's a JSON object, get its values
+        if (typeof parsed === 'object' && parsed !== null) {
+          return Object.values(parsed).join(' • ');
+        }
+        // If it's just a string in JSON quotes, return it without quotes
+        return parsed.toString();
+      } catch {
+        // If it's not JSON, return it as is
+        return focus;
+      }
+    }
+    
+    return 'No focus areas';
   };
 
   useEffect(() => {
@@ -373,11 +436,11 @@ export default function SavedPage() {
                         {sequence.level}
                       </span>
                       <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
-                        {sequence.poses.length} poses
+                        {parsePoses(sequence.poses).length} poses
                       </span>
-                      {sequence.peak_poses?.length > 0 && (
+                      {parsePeakPoses(sequence.peak_poses)?.length > 0 && (
                         <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm border border-yellow-500/30">
-                          Peak: {sequence.peak_poses.map(p => p.english_name).join(' & ')}
+                          Peak: {parsePeakPoses(sequence.peak_poses).map(p => p.english_name).join(' & ')}
                         </span>
                       )}
                     </div>

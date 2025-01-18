@@ -9,6 +9,7 @@ interface PoseModalProps {
   pose?: YogaPose | null;
   poses?: YogaPose[];
   suggestedPoses?: YogaPose[];
+  isLoadingSuggestions?: boolean;
   onClose: () => void;
   onGenerateSequence?: (pose: YogaPose) => void;
   onSelect?: (pose: YogaPose) => void;
@@ -18,6 +19,7 @@ export default function PoseModal({
   pose: singlePose,
   poses = [],
   suggestedPoses = [],
+  isLoadingSuggestions = false,
   onClose,
   onGenerateSequence,
   onSelect
@@ -116,7 +118,7 @@ export default function PoseModal({
             className="bg-gray-800/90 border border-white/10 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-6"
           >
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Select a Pose</h2>
+              <h2 className="text-2xl font-bold text-white">Replace Pose</h2>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
@@ -162,35 +164,55 @@ export default function PoseModal({
               )}
 
               {/* Suggested alternatives next */}
-              {suggestedPoses.slice(1).map((pose) => (
-                <motion.button
-                  key={pose.id}
-                  onClick={() => onSelect(pose)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-left hover:bg-purple-500/20 transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-medium text-white">{pose.english_name}</h3>
-                    <span className="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                      Suggested
-                    </span>
+              {isLoadingSuggestions ? (
+                // Loading placeholders for suggestions
+                Array(2).fill(0).map((_, index) => (
+                  <div
+                    key={`loading-${index}`}
+                    className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl p-4 animate-pulse"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-6 w-32 bg-white/10 rounded"></div>
+                      <div className="h-5 w-20 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full"></div>
+                    </div>
+                    <div className="h-4 w-24 bg-white/10 rounded mb-2"></div>
+                    <div className="flex gap-2">
+                      <div className="h-5 w-16 bg-blue-500/10 rounded-full"></div>
+                      <div className="h-5 w-20 bg-purple-500/10 rounded-full"></div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                  <div className="flex gap-2 mt-2">
-                    <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      {pose.difficulty_level}
-                    </span>
-                    <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                      {pose.category_name}
-                    </span>
-                  </div>
-                </motion.button>
-              ))}
+                ))
+              ) : (
+                suggestedPoses.slice(1, 3).map((pose) => (
+                  <motion.button
+                    key={pose.id}
+                    onClick={() => onSelect(pose)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full text-left p-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-blue-500/30 transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white">{pose.english_name}</h4>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-white border border-purple-500/30">
+                        Suggested
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
+                    <div className="flex gap-2 mt-2">
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        {pose.difficulty_level}
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        {pose.category_name}
+                      </span>
+                    </div>
+                  </motion.button>
+                ))
+              )}
 
               {/* All other poses */}
               {filteredPoses
-                .filter(p => !suggestedPoses.some(sp => sp.id === p.id))
+                .filter(p => !suggestedPoses.slice(0, 3).some(sp => sp.id === p.id))
                 .map((pose) => (
                   <motion.button
                     key={pose.id}
@@ -199,7 +221,7 @@ export default function PoseModal({
                     whileTap={{ scale: 0.98 }}
                     className="bg-white/5 border border-white/10 rounded-xl p-4 text-left hover:bg-white/10 transition-all"
                   >
-                    <h3 className="text-lg font-medium text-white mb-1">{pose.english_name}</h3>
+                    <h3 className="text-lg font-medium text-white">{pose.english_name}</h3>
                     <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
                     <div className="flex gap-2 mt-2">
                       <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
