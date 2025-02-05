@@ -258,50 +258,48 @@ export default function SequencePoseManager({
 
   return (
     <div className="space-y-6">
-      {/* Feature toggles */}
-      <div className="flex flex-wrap gap-3 p-4 bg-gray-800/50 rounded-xl border border-white/10">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleToggleFeature('timing', !enabledFeatures.timing)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              enabledFeatures.timing
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
-                : 'bg-gray-700/50 text-gray-400 border border-white/10 hover:bg-gray-700'
-            }`}
-          >
-            {enabledFeatures.timing ? '✓ Timing' : 'Timing'}
-          </button>
-          <button
-            onClick={() => handleToggleFeature('cues', !enabledFeatures.cues)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              enabledFeatures.cues
-                ? 'bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30'
-                : 'bg-gray-700/50 text-gray-400 border border-white/10 hover:bg-gray-700'
-            }`}
-          >
-            {enabledFeatures.cues ? '✓ Cues' : 'Cues'}
-          </button>
-          <button
-            onClick={() => handleToggleFeature('transitions', !enabledFeatures.transitions)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              enabledFeatures.transitions
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30'
-                : 'bg-gray-700/50 text-gray-400 border border-white/10 hover:bg-gray-700'
-            }`}
-          >
-            {enabledFeatures.transitions ? '✓ Transitions' : 'Transitions'}
-          </button>
-          <button
-            onClick={() => handleToggleFeature('descriptions', !enabledFeatures.descriptions)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              enabledFeatures.descriptions
-                ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/30'
-                : 'bg-gray-700/50 text-gray-400 border border-white/10 hover:bg-gray-700'
-            }`}
-          >
-            {enabledFeatures.descriptions ? '✓ Descriptions' : 'Descriptions'}
-          </button>
-        </div>
+      {/* Feature Toggles */}
+      <div className="flex flex-wrap gap-4">
+        <button
+          onClick={() => handleToggleFeature('timing', !enabledFeatures.timing)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            enabledFeatures.timing
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+              : 'bg-white/5 text-gray-400 border border-white/10'
+          }`}
+        >
+          Timing
+        </button>
+        <button
+          onClick={() => handleToggleFeature('transitions', !enabledFeatures.transitions)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            enabledFeatures.transitions
+              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+              : 'bg-white/5 text-gray-400 border border-white/10'
+          }`}
+        >
+          Transitions
+        </button>
+        <button
+          onClick={() => handleToggleFeature('cues', !enabledFeatures.cues)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            enabledFeatures.cues
+              ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+              : 'bg-white/5 text-gray-400 border border-white/10'
+          }`}
+        >
+          Cues
+        </button>
+        <button
+          onClick={() => handleToggleFeature('descriptions', !enabledFeatures.descriptions)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            enabledFeatures.descriptions
+              ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+              : 'bg-white/5 text-gray-400 border border-white/10'
+          }`}
+        >
+          Descriptions
+        </button>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -310,7 +308,7 @@ export default function SequencePoseManager({
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className={`space-y-4 transition-colors duration-200 ${
+              className={`space-y-2 transition-colors duration-200 ${
                 snapshot.isDraggingOver ? 'bg-white/5 rounded-xl p-4' : ''
               }`}
             >
@@ -325,41 +323,38 @@ export default function SequencePoseManager({
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className={`bg-white/5 border border-white/10 rounded-xl p-4 space-y-2 cursor-move transition-transform duration-200 ${
-                        peakPoses.some(p => p.id === pose.id) ? 'border-yellow-500/50 bg-yellow-500/10 ring-2 ring-yellow-500/20' : ''
+                      className={`bg-white/5 border border-white/10 rounded-xl p-3 cursor-move transition-transform duration-200 ${
+                        peakPoses.some(p => p.id === pose.id) ? 'border-yellow-500/50 bg-yellow-500/10' : ''
                       } ${snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-500/20 scale-[1.02] rotate-1 z-10' : ''}`}
-                      style={provided.draggableProps.style}
                     >
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-medium text-white">{pose.english_name}</h3>
+                            <h3 className="text-lg font-medium text-white truncate">{pose.english_name}</h3>
                             {peakPoses.some(p => p.id === pose.id) && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
-                                Peak Pose
-                              </span>
-                            )}
-                            {isCustomPose(pose) && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
-                                Custom Pose
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 whitespace-nowrap">
+                                Peak
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                          <div className="mt-3 space-y-2">
-                            {enabledFeatures.descriptions && (
-                              <p className="text-sm text-yellow-300/90 font-light">
-                                {pose.pose_description}
-                              </p>
-                            )}
+                          <p className="text-sm text-gray-400 truncate">{pose.sanskrit_name}</p>
+                          
+                          {/* Collapsible Details */}
+                          {enabledFeatures.descriptions && (
+                            <p className="mt-2 text-sm text-yellow-300/90 font-light line-clamp-2">
+                              {pose.pose_description}
+                            </p>
+                          )}
+                          
+                          <div className="mt-2 space-y-1">
                             {enabledFeatures.timing && timing[index] && (
                               <p className="text-sm text-blue-300/90 font-light">
-                                Duration: {timing[index]}
+                                {timing[index]}
                               </p>
                             )}
                             {enabledFeatures.transitions && transitions[index] && (
                               <p className="text-sm text-purple-300/90 font-light">
-                                Transition: {transitions[index]}
+                                {transitions[index]}
                               </p>
                             )}
                             {enabledFeatures.cues && repetitions[index] && (
@@ -372,18 +367,23 @@ export default function SequencePoseManager({
                             )}
                           </div>
                         </div>
+                        
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleReplacePose(index)}
                             className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
                           >
-                            <ArrowPathIcon className="w-5 h-5" />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" />
+                            </svg>
                           </button>
                           <button
                             onClick={() => handleRemovePose(index)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
                           >
-                            <TrashIcon className="w-5 h-5" />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
                           </button>
                         </div>
                       </div>
@@ -397,138 +397,34 @@ export default function SequencePoseManager({
         </Droppable>
       </DragDropContext>
 
-      <button
-        onClick={handleOpenAddModal}
-        className="w-full py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-      >
-        <PlusIcon className="w-5 h-5" />
-        Add Pose
-      </button>
+      <div className="flex justify-center">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleOpenAddModal}
+          className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+        >
+          Add Pose
+        </motion.button>
+      </div>
 
       {/* Add Pose Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-4xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Add Pose</h2>
-              <button
-                onClick={handleCloseAddModal}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search poses..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 mb-6"
-            />
-
-            <div className="max-h-[calc(100vh-16rem)] overflow-y-auto">
-              <div className="space-y-6">
-                {/* AI Suggested poses */}
-                {isLoadingAddSuggestions ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {Array(2).fill(0).map((_, index) => (
-                      <div
-                        key={`loading-${index}`}
-                        className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl p-4 animate-pulse"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="h-6 w-32 bg-white/10 rounded"></div>
-                          <div className="h-5 w-20 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full"></div>
-                        </div>
-                        <div className="h-4 w-24 bg-white/10 rounded mb-2"></div>
-                        <div className="flex gap-2">
-                          <div className="h-5 w-16 bg-blue-500/10 rounded-full"></div>
-                          <div className="h-5 w-20 bg-purple-500/10 rounded-full"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {suggestedAddPoses.poses.map((pose, index) => (
-                      <motion.button
-                        key={pose.id}
-                        onClick={() => handleAddPose(pose)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full text-left p-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-blue-500/30 transition-all"
-                      >
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-white">{pose.english_name}</h4>
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-white border border-purple-500/30">
-                            Suggested
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                        <p className="text-sm text-purple-300 mt-1">{suggestedAddPoses.explanations[index]}</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                            {pose.difficulty_level}
-                          </span>
-                          <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                            {pose.category_name}
-                          </span>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
-
-                {/* All other poses */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {allPoses
-                    .filter(p => 
-                      !poses?.some(pose => pose.id === p.id) &&
-                      !peakPoses.some(peak => peak.id === p.id) &&
-                      !suggestedAddPoses.poses.some(sp => sp.id === p.id) &&
-                      (searchTerm === '' || 
-                        p.english_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        p.sanskrit_name.toLowerCase().includes(searchTerm.toLowerCase()))
-                    )
-                    .map((pose) => (
-                      <motion.button
-                        key={pose.id}
-                        onClick={() => handleAddPose(pose)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full text-left p-4 rounded-xl bg-gray-700/50 hover:bg-gray-700 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-white">{pose.english_name}</h4>
-                          {isCustomPose(pose) && (
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
-                              Custom Pose
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                            {pose.difficulty_level}
-                          </span>
-                          <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                            {pose.category_name}
-                          </span>
-                        </div>
-                      </motion.button>
-                    ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PoseModal
+          poses={allPoses.filter(p => 
+            !poses?.some(existingPose => existingPose.id === p.id) &&
+            !peakPoses.some(peakPose => peakPose.id === p.id)
+          )}
+          onClose={() => setIsAddModalOpen(false)}
+          onSelect={handleAddPose}
+          mode="select"
+        />
       )}
 
       {/* Replace Pose Modal */}
       {isReplaceModalOpen && (
         <PoseModal
-          poses={allPoses}
+          poses={allPoses.filter(p => !peakPoses.some(peak => peak.id === p.id))}
           suggestedPoses={suggestedPoses}
           isLoadingSuggestions={isLoadingReplaceSuggestions}
           onClose={() => {
@@ -537,6 +433,7 @@ export default function SequencePoseManager({
             setSuggestedPoses([]);
           }}
           onSelect={handlePoseSelect}
+          mode="replace"
         />
       )}
     </div>

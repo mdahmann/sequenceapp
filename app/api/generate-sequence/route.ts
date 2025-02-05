@@ -6,100 +6,96 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_API_BASE_URL
 });
 
-export async function POST(request: Request) {
+// Common transitions between pose types
+const TRANSITION_PATTERNS = {
+  standing_to_standing: [
+    "Step feet together at the top of the mat",
+    "Ground through all four corners of the feet",
+    "Engage the leg muscles and find stability"
+  ],
+  standing_to_seated: [
+    "Slowly fold forward and place hands on the mat",
+    "Step or hop back to sit",
+    "Lower down with control"
+  ],
+  seated_to_standing: [
+    "Press hands into the mat and engage core",
+    "Step or hop to the top of the mat",
+    "Roll up to standing with a flat back"
+  ],
+  standing_to_prone: [
+    "Forward fold and step back to plank",
+    "Lower knees, chest, and chin with control",
+    "Release hips to the mat"
+  ],
+  prone_to_standing: [
+    "Press into hands and lift chest",
+    "Tuck toes and lift hips to downward dog",
+    "Step or hop to the top of the mat"
+  ]
+};
+
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { focus_poses, duration, difficulty_level, focus_areas, available_poses } = body;
+    const { sequence, focus, level, duration, customPrompt, available_poses } = await req.json();
 
-    // Ensure focus_areas is always an array of clean strings
-    const parsedFocusAreas = (Array.isArray(focus_areas) ? focus_areas : [])
-      .filter(Boolean)
-      .map(area => typeof area === 'string' ? area.trim() : '')
-      .filter(Boolean);
+    // Calculate number of poses based on duration
+    // Roughly 1-2 minutes per pose for beginners, 45-60 seconds for intermediate, 30-45 seconds for expert
+    const poseTimeMap = {
+      'Beginner': 90, // seconds
+      'Intermediate': 60,
+      'Expert': 45
+    };
+    const poseTime = poseTimeMap[level as keyof typeof poseTimeMap] || 60;
+    const targetPoseCount = Math.floor((duration * 60) / poseTime);
 
-    // Calculate number of poses based on duration (roughly one pose every 5 minutes)
-    const numPoses = Math.floor(duration / 5);
+    const systemPrompt = `You are an experienced yoga instructor creating a ${duration}-minute ${level} level sequence.
+The sequence should include approximately ${targetPoseCount} poses to maintain an appropriate pace.
 
-    // Construct the prompt for OpenAI
-    const systemPrompt = `You are a knowledgeable yoga instructor tasked with creating a ${duration}-minute yoga sequence. 
-The sequence should include approximately ${numPoses} poses, considering the following:
-
-${focus_poses.length > 0 ? `FOCUS POSES:
-${focus_poses.map((pose: { name: string; sanskrit_name: string; difficulty: string; category: string; description: string }, index: number) => `
-${index + 1}. ${pose.name} (${pose.sanskrit_name})
-   - Difficulty: ${pose.difficulty}
-   - Category: ${pose.category}
-   - Description: ${pose.description}`).join('\n')}
-
-These poses should be integrated naturally into the sequence, with proper preparation and counter-poses. Space them appropriately throughout the sequence to maintain flow and balance.` : ''}
-
-DIFFICULTY LEVEL: ${difficulty_level}
-Based on the ${difficulty_level.toLowerCase()} level:
-- For Beginner: Focus on foundational poses with clear alignment cues. Include mostly beginner poses (70-80%) with some intermediate poses (20-30%) when appropriate for progression.
-- For Intermediate: Create a balanced mix of beginner (30-40%) and intermediate poses (50-60%), with occasional advanced poses (10-20%) for challenge and growth.
-- For Expert: Design a challenging sequence with a mix of intermediate (40-50%) and advanced poses (40-50%), while maintaining some foundational poses (10-20%) for proper warm-up and cool-down.
-
-${parsedFocusAreas.length > 0 ? `FOCUS AREAS: ${parsedFocusAreas.join(', ')}
-The sequence should emphasize these areas while maintaining a balanced practice.` : ''}
-
-SEQUENCE REQUIREMENTS:
-1. Start with gentle warm-up poses appropriate for the level
-2. Gradually build intensity and complexity
-3. Include preparation poses before challenging poses
-4. Space the focus poses appropriately throughout the sequence
-5. Include counter-poses after challenging poses
-6. End with cooling and restorative poses
-7. Maintain a natural flow between poses
-8. Balance different types of poses (standing, seated, twists, etc.)
-9. Consider the anatomical and energetic progression
-
-TIMING AND FLOW GUIDELINES:
-1. Each pose should have a specific duration (e.g., "5 breaths", "30 seconds", "1 minute")
-2. Include repetitions where appropriate (e.g., "3 rounds of Sun Salutation A")
-3. Create mini-flows or sequences that can be repeated (e.g., "Warrior 2 → Extended Side Angle → Reverse Warrior, repeat 3 times per side")
-4. Balance static holds with dynamic movements
-5. Include transition instructions between poses
-6. Account for both sides when poses are asymmetrical
-
-SEQUENCE STRUCTURE:
-1. Opening/Centering (2-3 minutes)
-   - Include breathing exercises and gentle movements
+Key Sequencing Rules:
+1. Start with centering/breathing (2-3 minutes)
 2. Warm-up (15-20% of sequence)
-   - Include Sun Salutations or similar flowing sequences
-   - Repeat sequences 2-3 times to build heat
-3. Build-up poses (20-25% of sequence)
-   - Create mini-flows that can be repeated
-   - Include progressive variations
-4. Peak poses including focus poses (30-35% of sequence)
-   - Build up to challenging poses with proper preparation
-   - Include rest between challenging sequences
-5. Counter-poses and cool-down (20-25% of sequence)
-   - Include gentle twists and forward folds
-   - Progressive relaxation
-6. Final relaxation (2-3 minutes)
-   - Savasana with optional guided relaxation
+   - Include Sun Salutations or gentle flowing sequences
+   - Build heat progressively
+3. Standing poses (30-35% of sequence)
+   - Start with basic standing poses
+   - Progress to more challenging ones
+   - Include balancing poses when appropriate
+4. Peak poses/challenging sequences (20-25%)
+   - Build up with preparatory poses
+   - Include counter-poses after challenging poses
+5. Floor work (15-20%)
+   - Include seated poses, twists
+   - Progress to backbends or inversions if appropriate
+6. Cool-down (10-15%)
+   - Gentle forward folds
+   - Hip openers
+   - Twists
+7. Final relaxation (5-10 minutes)
 
-AVAILABLE POSES:
-${JSON.stringify(available_poses, null, 2)}
+Transition Guidelines:
+1. Flow smoothly between poses
+2. Use vinyasa transitions between standing sequences
+3. Minimize jumping between different pose types
+4. Include specific breath cues
+5. Account for both sides when poses are asymmetrical
+
+Focus Areas: ${focus.join(', ')}
+
+Available Poses: ${JSON.stringify(available_poses)}
 
 Respond with a JSON object containing:
-1. "sequence": Array of pose IDs in the correct order
-2. "timing": Array of corresponding timing instructions (e.g., "5 breaths", "30 seconds", "3 rounds")
-3. "transitions": Array of transition instructions between poses
-4. "repetitions": Object mapping pose IDs to number of repetitions or flow sequences
-
-Example:
 {
-  "sequence": [1, 4, 7, 2, 9],
-  "timing": ["5 breaths", "30 seconds", "1 minute", "5 breaths", "3 rounds"],
-  "transitions": ["Exhale to fold forward", "Roll up to standing", "Step right foot back"],
+  "sequence": [pose IDs in order],
+  "timing": [specific timing for each pose],
+  "transitions": [detailed transition instructions],
   "repetitions": {
-    "1": {"repeat": 3, "note": "Complete 3 rounds of Sun Salutation A"},
-    "4-7-2": {"repeat": 2, "note": "Flow through this sequence twice per side"}
+    "pose_id": {
+      "repeat": number of repetitions,
+      "note": "instruction for repetition"
+    }
   }
-}
-
-The sequence should create a cohesive flow that meets all the specified requirements while maintaining appropriate difficulty progression for the selected level.`;
+}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -107,10 +103,14 @@ The sequence should create a cohesive flow that meets all the specified requirem
         {
           role: "system",
           content: systemPrompt
+        },
+        {
+          role: "user",
+          content: customPrompt || `Create a ${duration}-minute ${level} level sequence focused on ${focus.join(', ')}.`
         }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
     const response = completion.choices[0].message.content;
@@ -118,15 +118,40 @@ The sequence should create a cohesive flow that meets all the specified requirem
       throw new Error('No response from OpenAI');
     }
 
-    // Parse the response and extract the sequence
+    // Parse and validate the response
     const parsedResponse = JSON.parse(response);
     
-    return NextResponse.json({
+    // Ensure we have all required fields
+    const result = {
       sequence: parsedResponse.sequence || [],
       timing: parsedResponse.timing || [],
       transitions: parsedResponse.transitions || [],
       repetitions: parsedResponse.repetitions || {}
-    });
+    };
+
+    // Validate sequence length
+    if (result.sequence.length < targetPoseCount * 0.8) {
+      // If sequence is too short, add complementary poses
+      const complementaryPoses = await getComplementaryPoses(
+        result.sequence,
+        targetPoseCount - result.sequence.length,
+        available_poses,
+        level,
+        focus
+      );
+      result.sequence = [...result.sequence, ...complementaryPoses];
+      
+      // Add default timing and transitions for new poses
+      for (let i = result.timing.length; i < result.sequence.length; i++) {
+        result.timing.push(getDefaultTiming(level));
+        result.transitions.push(getDefaultTransition(
+          getPoseCategory(result.sequence[i - 1], available_poses),
+          getPoseCategory(result.sequence[i], available_poses)
+        ));
+      }
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error generating sequence:', error);
     return NextResponse.json(
@@ -134,4 +159,57 @@ The sequence should create a cohesive flow that meets all the specified requirem
       { status: 500 }
     );
   }
+}
+
+// Helper functions
+function getDefaultTiming(level: string): string {
+  const timings = {
+    'Beginner': '5-8 breaths',
+    'Intermediate': '5 breaths',
+    'Expert': '3-5 breaths'
+  };
+  return timings[level as keyof typeof timings] || '5 breaths';
+}
+
+function getPoseCategory(poseId: number, poses: any[]): string {
+  const pose = poses.find(p => p.id === poseId);
+  return pose?.category_name || 'unknown';
+}
+
+function getDefaultTransition(fromCategory: string, toCategory: string): string {
+  const key = `${fromCategory.toLowerCase()}_to_${toCategory.toLowerCase()}`;
+  const transitions = TRANSITION_PATTERNS[key as keyof typeof TRANSITION_PATTERNS];
+  if (transitions) {
+    return transitions[Math.floor(Math.random() * transitions.length)];
+  }
+  return "Move mindfully to the next pose";
+}
+
+async function getComplementaryPoses(
+  currentSequence: number[],
+  posesNeeded: number,
+  availablePoses: any[],
+  level: string,
+  focus: string[]
+): Promise<number[]> {
+  // Filter available poses by level and exclude poses already in sequence
+  const eligiblePoses = availablePoses.filter(pose => 
+    pose.difficulty_level === level &&
+    !currentSequence.includes(pose.id)
+  );
+
+  // Prioritize poses that match focus areas
+  const focusPoses = eligiblePoses.filter(pose =>
+    focus.some(f => 
+      pose.category_name.toLowerCase().includes(f.toLowerCase()) ||
+      pose.english_name.toLowerCase().includes(f.toLowerCase())
+    )
+  );
+
+  // Combine focus poses with other eligible poses and take what we need
+  const complementaryPoses = [...focusPoses, ...eligiblePoses]
+    .slice(0, posesNeeded)
+    .map(pose => pose.id);
+
+  return complementaryPoses;
 } 
