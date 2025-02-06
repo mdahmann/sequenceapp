@@ -2,40 +2,85 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { YogaPose } from '@/lib/data/poses';
+import { YogaPose } from '@/types/YogaPose';
 import PoseModal from './PoseModal';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import CustomPoseForm from './CustomPoseForm';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import ConfirmationModal from './ConfirmationModal';
 
 interface PoseNavigatorProps {
   poses: YogaPose[];
-  categories: string[];
+  categories?: string[];
 }
 
 export default function PoseNavigator({ poses: initialPoses, categories }: PoseNavigatorProps) {
+  const supabase = createClientComponentClient();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
+
   const [selectedPose, setSelectedPose] = useState<YogaPose | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   const [isCustomPoseFormOpen, setIsCustomPoseFormOpen] = useState(false);
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
-  const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
+  const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [poseToDelete, setPoseToDelete] = useState<YogaPose | null>(null);
   const [poseToEdit, setPoseToEdit] = useState<YogaPose | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+
+  const allPoses = useMemo(() => {
+    return [
+      ...initialPoses,
+      ...customPoses.map(pose => ({
+        ...pose,
+        id: `custom-${pose.id}`
+      }))
+    ];
+  }, [initialPoses, customPoses]);
+
+  const handleDeleteCustomPose = async (pose: YogaPose) => {
+    setPoseToDelete(pose);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!poseToDelete) return;
+
+    try {
+      const numericId = typeof poseToDelete.id === 'string' 
+        ? Number(poseToDelete.id.toString().replace('custom-', '')) 
+        : poseToDelete.id;
+      
+      const { error } = await supabase
+        .from('custom_poses')
+        .delete()
+        .eq('id', numericId);
+
+      if (error) {
+        console.error('Error deleting custom pose:', error);
+        return;
+      }
+
+      // Remove from local state
+      const updatedCustomPoses = customPoses.filter(p => p.id !== poseToDelete.id);
+      setCustomPoses(updatedCustomPoses);
+      setPoseToDelete(null);
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error('Error deleting custom pose:', error);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Auth state:', !!session);
       setIsAuthenticated(!!session);
 
-      // Subscribe to auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log('Auth state changed:', !!session);
         setIsAuthenticated(!!session);
       });
 
@@ -81,54 +126,6 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
     }
   }, [isAuthenticated]);
 
-  const allPoses = useMemo(() => {
-    return [...initialPoses, ...customPoses.map(pose => ({
-      ...pose,
-      id: `custom-${pose.id}`
-    }))];
-  }, [initialPoses, customPoses]);
-
-  const filteredPoses = useMemo(() => {
-    return allPoses.filter(pose => {
-      const matchesSearch = searchQuery
-        ? pose.english_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          pose.sanskrit_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          pose.pose_description.toLowerCase().includes(searchQuery.toLowerCase())
-        : true;
-
-      const matchesCategory = selectedCategory
-        ? pose.category_name === selectedCategory
-        : true;
-
-      const matchesLevel = selectedLevel
-        ? pose.difficulty_level === selectedLevel
-        : true;
-
-      return matchesSearch && matchesCategory && matchesLevel;
-    });
-  }, [allPoses, searchQuery, selectedCategory, selectedLevel]);
-
-  const handleSearch = async () => {
-    setIsSearching(true);
-    // Simulate search delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsSearching(false);
-  };
-
-  const generateSequenceFromPose = (pose: YogaPose) => {
-    // Check if user is logged in
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      // Navigate to generate page with pose as focus
-      router.push(`/generate?pose=${pose.id}`);
-    };
-    checkAuth();
-  };
-
   const handleSaveCustomPose = async (pose: Omit<YogaPose, 'id'>) => {
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -151,46 +148,41 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
       await fetchCustomPoses();
     } catch (error) {
       console.error('Error saving custom pose:', error);
-      // You might want to show an error message to the user here
-    }
-  };
-
-  const handleDeleteCustomPose = async (pose: YogaPose) => {
-    setPoseToDelete(pose);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!poseToDelete) return;
-
-    try {
-      const numericId = typeof poseToDelete.id === 'string' 
-        ? parseInt(poseToDelete.id.replace('custom-', '')) 
-        : poseToDelete.id;
-      
-      const { error } = await supabase
-        .from('custom_poses')
-        .delete()
-        .eq('id', numericId);
-
-      if (error) {
-        throw error;
-      }
-
-      await fetchCustomPoses();
-    } catch (error) {
-      console.error('Error deleting custom pose:', error);
     }
   };
 
   const handleEditCustomPose = (pose: YogaPose) => {
-    // Remove the 'custom-' prefix from the ID for editing
-    const originalPose = {
-      ...pose,
-      id: typeof pose.id === 'string' ? parseInt(pose.id.replace('custom-', '')) : pose.id
-    };
-    setPoseToEdit(originalPose);
+    setPoseToEdit(pose);
     setIsCustomPoseFormOpen(true);
+  };
+
+  const filteredPoses = useMemo(() => {
+    return allPoses.filter(pose => {
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = searchQuery === '' || 
+        pose.english_name.toLowerCase().includes(searchLower) ||
+        (pose.sanskrit_name && pose.sanskrit_name.toLowerCase().includes(searchLower)) ||
+        (pose.pose_description && pose.pose_description.toLowerCase().includes(searchLower));
+      
+      const matchesCategory = selectedCategory === '' || pose.category_name === selectedCategory;
+      const matchesLevel = selectedLevel === '' || pose.difficulty_level === selectedLevel;
+      
+      return matchesSearch && matchesCategory && matchesLevel;
+    });
+  }, [allPoses, searchQuery, selectedCategory, selectedLevel]);
+
+  const generateSequenceFromPose = (pose: YogaPose) => {
+    // Check if user is logged in
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      // Navigate to generate page with pose as focus
+      router.push(`/generate?pose=${pose.id}`);
+    };
+    checkAuth();
   };
 
   return (
@@ -230,7 +222,7 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
           className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
         >
           <option value="">All Categories</option>
-          {categories.map((category) => (
+          {categories?.map((category) => (
             <option key={category} value={category}>
               {category}
             </option>
@@ -260,16 +252,6 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
         )}
       </motion.div>
 
-      {/* Results Count */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-gray-400"
-      >
-        {filteredPoses.length} poses found
-      </motion.div>
-
       {/* Results Grid */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -278,7 +260,7 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {filteredPoses.map((pose) => {
-          const isCustomPose = typeof pose.id === 'string' && pose.id.startsWith('custom-');
+          const isCustomPose = pose.user_id !== undefined;
           return (
             <motion.div
               key={pose.id}
@@ -287,10 +269,11 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
               className={`bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-colors cursor-pointer group ${
                 isCustomPose ? 'border-purple-500/30 bg-purple-500/5' : ''
               }`}
+              onClick={() => setSelectedPose(pose)}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1" onClick={() => setSelectedPose(pose)}>
+                  <div className="flex-1">
                     <h3 className="text-xl font-medium mb-1 text-white">{pose.english_name}</h3>
                     <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
                   </div>
@@ -328,18 +311,16 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                     )}
                   </div>
                 </div>
-                <div onClick={() => setSelectedPose(pose)}>
-                  <p className="text-sm text-gray-300 line-clamp-2">
-                    {pose.pose_description}
-                  </p>
-                  <div className="flex gap-2 mt-4">
-                    <span className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      {pose.difficulty_level}
-                    </span>
-                    <span className="px-3 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                      {pose.category_name}
-                    </span>
-                  </div>
+                <p className="text-sm text-gray-300 line-clamp-2">
+                  {pose.pose_description}
+                </p>
+                <div className="flex gap-2 mt-4">
+                  <span className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    {pose.difficulty_level}
+                  </span>
+                  <span className="px-3 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    {pose.category_name}
+                  </span>
                 </div>
               </div>
             </motion.div>

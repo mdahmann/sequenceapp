@@ -2,18 +2,193 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 17, 24, 39;
-  --background-end-rgb: 31, 41, 55;
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 270 95% 35%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 3.9%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 25%;
+    --accent: 270 95% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 65%;
+    --input: 240 6% 65%;
+    --ring: 270 95% 35%;
+    --radius: 0px;
+  }
+
+  [data-theme="dark"] {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 270 95% 75%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 270 95% 75%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 270 95% 75%;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-    to bottom,
-    rgb(var(--background-start-rgb)),
-    rgb(var(--background-end-rgb))
-  );
-  min-height: 100vh;
+@layer base {
+  * {
+    @apply border-border/10;
+  }
+  
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+  }
+
+  /* Theme-specific grid background */
+  .grid-background {
+    @apply bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))];
+  }
+
+  [data-theme="light"] .grid-background {
+    background-image: url('/grid.svg');
+  }
+
+  [data-theme="dark"] .grid-background {
+    background-image: url('/grid-dark.svg');
+  }
+
+  /* Form elements for light mode */
+  [data-theme="light"] {
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    textarea {
+      @apply bg-white border-2 border-border/30 text-foreground;
+    }
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tighter;
+  }
+
+  h1 {
+    @apply text-4xl md:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-4xl;
+  }
+
+  p {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+}
+
+@layer components {
+  .brutalist-card {
+    @apply bg-white border-2 border-border/30 p-6 transition-colors hover:bg-card shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] dark:bg-card/95 dark:border-border/10 dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.1)];
+  }
+
+  .brutalist-input {
+    @apply w-full bg-white border-2 border-border/30 px-4 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 shadow-[2px_2px_0_0_rgba(0,0,0,0.1)] dark:bg-background dark:border-border/10 dark:shadow-[2px_2px_0_0_rgba(255,255,255,0.1)];
+  }
+
+  .brutalist-button {
+    @apply px-6 py-2 font-bold tracking-wide uppercase transition-colors disabled:opacity-50;
+  }
+
+  .brutalist-button-primary {
+    @apply brutalist-button bg-primary text-primary-foreground hover:bg-primary/90 shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.1)];
+  }
+
+  .brutalist-button-secondary {
+    @apply brutalist-button bg-white border-2 border-border/30 hover:bg-secondary hover:text-secondary-foreground shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] dark:bg-transparent dark:border-border/10 dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.1)];
+  }
+
+  .brutalist-button-destructive {
+    @apply brutalist-button bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.1)];
+  }
+}
+
+/* Custom Scrollbar */
+[data-theme="light"] {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border hover:bg-border/80 transition-colors;
+  }
+}
+
+[data-theme="dark"] {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 hover:bg-muted-foreground/50 transition-colors;
+  }
+}
+
+/* Selection */
+::selection {
+  @apply bg-primary/30 text-foreground;
+}
+
+/* Focus Outline */
+:focus {
+  @apply outline-none ring-2 ring-ring/50;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom tag styles */
+.tag-primary {
+  @apply px-2 py-1 text-xs font-medium tracking-wide uppercase bg-white border-2 border-primary/50 text-primary;
+}
+
+.tag-secondary {
+  @apply px-2 py-1 text-xs font-medium tracking-wide uppercase bg-white border-2 border-border/30 text-foreground dark:bg-secondary/80 dark:text-secondary-foreground dark:border-border/10;
+}
+
+.tag-accent {
+  @apply px-2 py-1 text-xs font-medium tracking-wide uppercase bg-white border-2 border-accent/50 text-accent;
 } 

@@ -37,10 +37,12 @@ const TRANSITION_PATTERNS = {
 
 export async function POST(req: Request) {
   try {
-    const { sequence, focus, level, duration, customPrompt, available_poses } = await req.json();
+    const { sequence, focus = [], level, duration, customPrompt, available_poses } = await req.json();
+
+    // Ensure focus is an array
+    const focusAreas = Array.isArray(focus) ? focus : [focus].filter(Boolean);
 
     // Calculate number of poses based on duration
-    // Roughly 1-2 minutes per pose for beginners, 45-60 seconds for intermediate, 30-45 seconds for expert
     const poseTimeMap = {
       'Beginner': 90, // seconds
       'Intermediate': 60,
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are an experienced yoga instructor creating a ${duration}-minute ${level} level sequence.
 The sequence should include approximately ${targetPoseCount} poses to maintain an appropriate pace.
+${focusAreas.length > 0 ? `Focus areas: ${focusAreas.join(', ')}` : ''}
 
 Key Sequencing Rules:
 1. Start with centering/breathing (2-3 minutes)
@@ -80,8 +83,6 @@ Transition Guidelines:
 4. Include specific breath cues
 5. Account for both sides when poses are asymmetrical
 
-Focus Areas: ${focus.join(', ')}
-
 Available Poses: ${JSON.stringify(available_poses)}
 
 Respond with a JSON object containing:
@@ -106,7 +107,7 @@ Respond with a JSON object containing:
         },
         {
           role: "user",
-          content: customPrompt || `Create a ${duration}-minute ${level} level sequence focused on ${focus.join(', ')}.`
+          content: customPrompt || `Create a ${duration}-minute ${level} level sequence${focusAreas.length > 0 ? ` focused on ${focusAreas.join(', ')}` : ''}.`
         }
       ],
       temperature: 0.7,
@@ -137,17 +138,19 @@ Respond with a JSON object containing:
         targetPoseCount - result.sequence.length,
         available_poses,
         level,
-        focus
+        focusAreas
       );
       result.sequence = [...result.sequence, ...complementaryPoses];
       
       // Add default timing and transitions for new poses
       for (let i = result.timing.length; i < result.sequence.length; i++) {
         result.timing.push(getDefaultTiming(level));
-        result.transitions.push(getDefaultTransition(
-          getPoseCategory(result.sequence[i - 1], available_poses),
-          getPoseCategory(result.sequence[i], available_poses)
-        ));
+        if (i > 0) {
+          result.transitions.push(getDefaultTransition(
+            getPoseCategory(result.sequence[i - 1], available_poses),
+            getPoseCategory(result.sequence[i], available_poses)
+          ));
+        }
       }
     }
 

@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { YogaPose } from '@/lib/data/poses';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import toast from 'react-hot-toast';
+import { ShareIcon } from '@heroicons/react/24/outline';
 
 interface SavedSequence {
   id: string;
@@ -15,6 +18,103 @@ interface SavedSequence {
   poses: YogaPose[];
   peak_poses: YogaPose[];
   created_at: string;
+  is_public: boolean;
+}
+
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onShare: (makePublic: boolean) => void;
+  isPublic: boolean;
+  sequenceId?: string;
+}
+
+function ShareModal({ isOpen, onClose, onShare, isPublic, sequenceId }: ShareModalProps) {
+  const copyLink = async () => {
+    if (!sequenceId) return;
+    const shareUrl = `${window.location.origin}/sequence/${sequenceId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied to clipboard!');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Failed to copy share link');
+    }
+  };
+
+  return (
+    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="w-full max-w-md bg-background p-6 rounded-xl border-2 border-border/10 shadow-xl"
+        >
+          <h3 className="text-xl font-bold mb-4">Share Sequence</h3>
+          
+          {isPublic ? (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">This sequence is public and can be found in Discover.</p>
+              
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                <p className="text-sm font-medium mb-2">Share Link</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={`${window.location.origin}/sequence/${sequenceId}`}
+                    readOnly
+                    className="flex-1 bg-background px-3 py-2 rounded border border-border text-sm"
+                  />
+                  <button
+                    onClick={copyLink}
+                    className="brutalist-button-secondary px-3 py-2"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => onShare(false)}
+                  className="brutalist-button-secondary"
+                >
+                  Make Private
+                </button>
+                <button
+                  onClick={onClose}
+                  className="brutalist-button-primary"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Make this sequence public to share it with the community?</p>
+              <p className="text-sm text-muted-foreground">Public sequences will appear in Discover and can be viewed by anyone.</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={onClose}
+                  className="brutalist-button-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => onShare(true)}
+                  className="brutalist-button-primary"
+                >
+                  Make Public
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </div>
+  );
 }
 
 export default function SavedPage() {
@@ -29,6 +129,7 @@ export default function SavedPage() {
     focus: '',
     peakPose: ''
   });
+  const [shareSequence, setShareSequence] = useState<SavedSequence | null>(null);
 
   const parseFocus = (focus: string | string[] | null): string[] => {
     if (!focus) return [];
@@ -257,6 +358,48 @@ export default function SavedPage() {
     router.push(`/generate?edit=${id}`);
   };
 
+  const handleShare = async (sequenceId: string) => {
+    const sequence = sequences.find(s => s.id === sequenceId);
+    if (sequence) {
+      setShareSequence(sequence);
+    }
+  };
+
+  const handleMakePublic = async (makePublic: boolean) => {
+    if (!shareSequence) return;
+
+    try {
+      const { error } = await supabase
+        .from('sequences')
+        .update({ 
+          is_public: makePublic,
+          published_at: makePublic ? new Date().toISOString() : null
+        })
+        .eq('id', shareSequence.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSequences(sequences.map(seq => 
+        seq.id === shareSequence.id 
+          ? { ...seq, is_public: makePublic }
+          : seq
+      ));
+
+      // Show success message
+      toast.success(makePublic 
+        ? 'Sequence is now public and available in Discover!' 
+        : 'Sequence is now private'
+      );
+
+      // Close modal
+      setShareSequence(null);
+    } catch (error) {
+      console.error('Error updating sequence visibility:', error);
+      toast.error('Failed to update sequence visibility');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -267,225 +410,106 @@ export default function SavedPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-8"
-      >
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-            Your Saved Flows
-          </h1>
-          <p className="text-xl text-gray-400">
-            View and manage your saved sequences
-          </p>
-          <div className="flex flex-col items-center gap-4 pt-4">
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap justify-center gap-4">
-              {showDurationFilter && !filters.duration && (
-                <select
-                  value={filters.duration}
-                  onChange={(e) => setFilters(prev => ({ ...prev, duration: e.target.value }))}
-                  className="bg-gray-800 text-gray-200 rounded-lg px-4 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Durations</option>
-                  {availableDurations.map(duration => (
-                    <option key={duration} value={duration}>{duration} minutes</option>
-                  ))}
-                </select>
-              )}
-              {showLevelFilter && !filters.level && (
-                <select
-                  value={filters.level}
-                  onChange={(e) => setFilters(prev => ({ ...prev, level: e.target.value }))}
-                  className="bg-gray-800 text-gray-200 rounded-lg px-4 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Levels</option>
-                  {availableLevels.map(level => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-              )}
-              {showFocusFilter && !filters.focus && (
-                <select
-                  value={filters.focus}
-                  onChange={(e) => setFilters(prev => ({ ...prev, focus: e.target.value }))}
-                  className="bg-gray-800 text-gray-200 rounded-lg px-4 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Focus Areas</option>
-                  {availableFocusAreas.map(focus => (
-                    <option key={focus} value={focus}>{focus}</option>
-                  ))}
-                </select>
-              )}
-              {showPeakPoseFilter && !filters.peakPose && (
-                <select
-                  value={filters.peakPose}
-                  onChange={(e) => setFilters(prev => ({ ...prev, peakPose: e.target.value }))}
-                  className="bg-gray-800 text-gray-200 rounded-lg px-4 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Peak Poses</option>
-                  {availablePeakPoses.map(pose => (
-                    <option key={pose} value={pose}>{pose}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            {/* Active Filters */}
-            {Object.entries(filters).some(([_, value]) => value) && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {filters.duration && (
-                  <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30 flex items-center gap-2">
-                    {filters.duration} minutes
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, duration: '' }))}
-                      className="hover:text-white"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-4">Saved Sequences</h1>
+        <p className="text-muted-foreground">
+          View and manage your saved sequences
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : sequences.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No saved sequences yet</p>
+          <button
+            onClick={() => router.push('/generate')}
+            className="mt-4 brutalist-button-primary"
+          >
+            Create Your First Sequence
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sequences.map((sequence) => (
+            <motion.div
+              key={sequence.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="brutalist-card"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold">{sequence.name}</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleShare(sequence.id)}
+                    className="p-2 hover:text-primary transition-colors relative group"
+                    title={sequence.is_public ? "View sharing options" : "Share sequence"}
+                  >
+                    <ShareIcon className="w-5 h-5" />
+                    {sequence.is_public && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleEdit(sequence.id)}
+                    className="p-2 hover:text-primary transition-colors"
+                    title="Edit sequence"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setIsDeleting(sequence.id)}
+                    className="p-2 text-red-500 hover:text-red-400 transition-colors"
+                    title="Delete sequence"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="tag-primary">{sequence.level}</span>
+                <span className="tag-secondary">{sequence.duration} min</span>
+                {parseFocus(sequence.focus).map((focus) => (
+                  <span key={focus} className="tag-accent">
+                    {focus}
                   </span>
-                )}
-                {filters.level && (
-                  <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm border border-purple-500/30 flex items-center gap-2">
-                    {filters.level}
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, level: '' }))}
-                      className="hover:text-white"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </span>
-                )}
-                {filters.focus && (
-                  <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30 flex items-center gap-2">
-                    {filters.focus}
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, focus: '' }))}
-                      className="hover:text-white"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </span>
-                )}
-                {filters.peakPose && (
-                  <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm border border-yellow-500/30 flex items-center gap-2">
-                    Peak: {filters.peakPose}
-                    <button
-                      onClick={() => setFilters(prev => ({ ...prev, peakPose: '' }))}
-                      className="hover:text-white"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </span>
+                ))}
+                {sequence.is_public && (
+                  <span className="tag-primary">Public</span>
                 )}
               </div>
-            )}
-          </div>
-        </div>
 
-        {error && (
-          <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="grid gap-6">
-          {filteredSequences.length === 0 ? (
-            <div className="text-center py-12">
-              {sequences.length === 0 ? (
-                <>
-                  <p className="text-gray-400 mb-4">No saved sequences yet</p>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push('/generate')}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl px-6 py-3 font-medium transition-colors"
-                  >
-                    Create Your First Sequence
-                  </motion.button>
-                </>
-              ) : (
-                <p className="text-gray-400">No sequences match your filters</p>
-              )}
-            </div>
-          ) : (
-            filteredSequences.map((sequence) => (
-              <motion.div
-                key={sequence.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-gray-800/50 backdrop-blur-lg p-6 rounded-2xl border border-white/10"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-3 flex-grow">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-semibold text-white">
-                        {sequence.name}
-                      </h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30">
-                        {sequence.duration} minutes
-                      </span>
-                      <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm border border-purple-500/30">
-                        {sequence.level}
-                      </span>
-                      <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
-                        {parsePoses(sequence.poses).length} poses
-                      </span>
-                      {parsePeakPoses(sequence.peak_poses)?.length > 0 && (
-                        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm border border-yellow-500/30">
-                          Peak: {parsePeakPoses(sequence.peak_poses).map(p => p.english_name).join(' & ')}
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-gray-400 text-sm">
-                        Focus: {formatFocusAreas(sequence.focus)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEdit(sequence.id)}
-                      className="text-blue-400 hover:text-blue-300 p-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                      </svg>
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleDelete(sequence.id)}
-                      disabled={isDeleting === sequence.id}
-                      className="text-red-400 hover:text-red-300 p-2 disabled:opacity-50"
-                    >
-                      {isDeleting === sequence.id ? (
-                        <div className="w-5 h-5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
+              <div className="text-sm text-muted-foreground">
+                {sequence.poses.length} poses
+              </div>
+            </motion.div>
+          ))}
         </div>
-      </motion.div>
+      )}
+
+      <ConfirmationModal
+        isOpen={!!isDeleting}
+        onClose={() => setIsDeleting(null)}
+        onConfirm={() => handleDelete(isDeleting!)}
+        title="Delete Sequence"
+        message="Are you sure you want to delete this sequence? This action cannot be undone."
+      />
+
+      <ShareModal
+        isOpen={!!shareSequence}
+        onClose={() => setShareSequence(null)}
+        onShare={(makePublic) => handleMakePublic(makePublic)}
+        isPublic={shareSequence?.is_public || false}
+        sequenceId={shareSequence?.id}
+      />
     </div>
   );
 } 

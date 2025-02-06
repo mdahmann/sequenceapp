@@ -8,6 +8,8 @@ import { YogaPose } from '@/lib/data/poses';
 import { Dialog } from '@headlessui/react';
 import { PlusIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import SequencePoseManager from '@/components/SequencePoseManager';
+import { toast } from 'react-hot-toast';
+import SaveSequenceModal from '@/components/SaveSequenceModal';
 
 interface GeneratePageProps {}
 
@@ -75,6 +77,7 @@ function GenerateContent() {
   const [alternativePoses, setAlternativePoses] = useState<{[key: number]: YogaPose[]}>({});
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
   const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   
   const focusOptions = [
     'Core & Balance',
@@ -629,77 +632,52 @@ function GenerateContent() {
     }
   };
 
-  const handleSaveSequence = async () => {
-    if (!sequence) return;
-    
-    setIsSaving(true);
-    setSaveError('');
-
+  const handleSaveSequence = async (name: string, isPublic: boolean) => {
     try {
+    setIsSaving(true);
+
+      // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session) {
         router.push('/login');
         return;
       }
 
-      // Clean up peak poses
-      const cleanedPeakPoses = peakPoses.filter(peakPose => 
-        sequence.some(pose => pose.id === peakPose.id)
+      // Save sequence to database
+      const { data, error } = await supabase
+          .from('sequences')
+          .insert({
+          name,
+            duration,
+            level,
+          focus: focus,
+          poses: poses,
+          peak_poses: peakPoses,
+          timing,
+          transitions,
+          repetitions,
+          enabled_features: enabledFeatures,
+          user_id: session.user.id,
+          is_public: isPublic,
+          published_at: isPublic ? new Date().toISOString() : null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Show success message
+      toast.success(
+        isPublic ? 
+          'Your sequence is now available in the Discover section!' :
+          'Your sequence has been saved to your account!'
       );
 
-      // Clean up focus areas and ensure it's a proper array
-      const formattedFocus = cleanFocusArray(focus);
-
-      // Prepare the data
-      const sequenceData = {
-        user_id: session.user.id,
-        name: title,
-        duration,
-        level,
-        focus: formattedFocus,
-        poses: sequence,
-        peak_poses: cleanedPeakPoses,
-        timing,
-        transitions,
-        repetitions,
-        enabled_features: enabledFeatures
-      };
-
-      if (editingSequenceId) {
-        const { data, error: updateError } = await supabase.rpc(
-          'update_sequence',
-          {
-            p_id: parseInt(editingSequenceId),
-            p_duration: duration,
-            p_enabled_features: JSON.stringify(enabledFeatures),
-            p_focus: formattedFocus,
-            p_level: level,
-            p_name: title,
-            p_peak_poses: JSON.stringify(cleanedPeakPoses),
-            p_poses: JSON.stringify(sequence),
-            p_repetitions: JSON.stringify(repetitions),
-            p_timing: JSON.stringify(timing),
-            p_transitions: JSON.stringify(transitions),
-            p_user_id: session.user.id
-          }
-        );
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('sequences')
-          .insert(sequenceData);
-
-        if (insertError) throw insertError;
-      }
-
-        await new Promise(resolve => setTimeout(resolve, 500));
-        router.refresh();
+      setIsSaveModalOpen(false);
         router.push('/saved');
-    } catch (error: any) {
-      console.error('Save error:', error);
-        setSaveError(error instanceof Error ? error.message : 'Failed to save sequence');
+    } catch (error) {
+      console.error('Error saving sequence:', error);
+      toast.error('Failed to save sequence. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -1356,9 +1334,9 @@ function GenerateContent() {
                           placeholder="Enter a title for your sequence"
                           className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-lg sm:text-xl font-medium text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             setIsAiModalOpen(true);
                             getAiSuggestions();
@@ -1372,7 +1350,9 @@ function GenerateContent() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={handleSaveSequence}
+                      onClick={() => {
+                        setIsSaveModalOpen(true);
+                      }}
                           disabled={!hasChanges || isSaving}
                           className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
@@ -1598,6 +1578,14 @@ function GenerateContent() {
           </Dialog.Panel>
         </div>
       </Dialog>
+
+      {/* Add Save Modal */}
+      <SaveSequenceModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSave={handleSaveSequence}
+        isSaving={isSaving}
+      />
     </>
   );
 }
