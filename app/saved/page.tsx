@@ -19,6 +19,8 @@ interface SavedSequence {
   peak_poses: YogaPose[];
   created_at: string;
   is_public: boolean;
+  is_liked: boolean;
+  source: 'owned' | 'liked';
 }
 
 interface ShareModalProps {
@@ -286,48 +288,67 @@ export default function SavedPage() {
     return 'No focus areas';
   };
 
+  const loadSequences = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) throw sessionError;
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      // Get both owned and liked sequences
+      const { data: ownedSequences, error: ownedError } = await supabase
+        .from('sequences')
+        .select('*')
+        .eq('user_id', session.user.id);
+
+      if (ownedError) throw ownedError;
+
+      const { data: likedSequences, error: likedError } = await supabase
+        .from('sequences')
+        .select('*, sequence_likes!inner(*)')
+        .eq('sequence_likes.user_id', session.user.id)
+        .neq('user_id', session.user.id); // Don't include own sequences
+
+      if (likedError) throw likedError;
+
+      // Combine and format sequences
+      const allSequences = [
+        ...(ownedSequences || []).map(seq => ({
+          ...seq,
+          poses: parsePoses(seq.poses),
+          peak_poses: parsePeakPoses(seq.peak_poses),
+          focus: parseFocus(seq.focus),
+          is_liked: true, // Own sequences are always liked
+          source: 'owned' as const
+        })),
+        ...(likedSequences || []).map(seq => ({
+          ...seq,
+          poses: parsePoses(seq.poses),
+          peak_poses: parsePeakPoses(seq.peak_poses),
+          focus: parseFocus(seq.focus),
+          is_liked: true,
+          source: 'liked' as const
+        }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setSequences(allSequences);
+    } catch (error: any) {
+      console.error('Error loading sequences:', error);
+      setError(error.message || 'Failed to load sequences');
+      toast.error('Failed to load sequences');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-
-    const loadSequences = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          router.push('/login');
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('sequences')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (isMounted) {
-          console.log('Raw sequences data:', data);
-          // Log the structure of the first sequence to understand the data format
-          if (data && data.length > 0) {
-            console.log('First sequence structure:', {
-              focus: data[0].focus,
-              focusType: typeof data[0].focus,
-              peak_pose: data[0].peak_pose,
-              peak_pose_type: typeof data[0].peak_pose
-            });
-          }
-          setSequences(data || []);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setError(error instanceof Error ? error.message : 'Failed to load sequences');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
 
     loadSequences();
     router.refresh();

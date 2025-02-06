@@ -19,6 +19,7 @@ interface SequenceDetails {
   view_count: number;
   like_count: number;
   is_public: boolean;
+  is_liked?: boolean;
   profiles: {
     full_name: string;
   };
@@ -29,6 +30,7 @@ export default function SequencePage({ params }: { params: { id: string } }) {
   const [sequence, setSequence] = useState<SequenceDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLiking, setIsLiking] = useState(false);
 
   useEffect(() => {
     loadSequence();
@@ -39,7 +41,10 @@ export default function SequencePage({ params }: { params: { id: string } }) {
       setIsLoading(true);
       setError(null);
 
-      // First get the sequence
+      // Get current session first
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Get the sequence
       const { data: sequenceData, error: sequenceError } = await supabase
         .from('sequences')
         .select('*')
@@ -54,22 +59,41 @@ export default function SequencePage({ params }: { params: { id: string } }) {
         return;
       }
 
-      // Then get the profile information
-      const { data: profileData, error: profileError } = await supabase
+      // Get the profile data separately
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('full_name')
         .eq('id', sequenceData.user_id)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        // Don't throw here, just use a fallback name
+      // Increment view count silently
+      await supabase.rpc('increment_view_count', {
+        sequence_id: params.id
+      });
+
+      let isLiked = false;
+
+      if (session) {
+        // Check if it's the user's own sequence
+        if (sequenceData.user_id === session.user.id) {
+          isLiked = true;
+        } else {
+          // Check if the user has liked this sequence
+          const { data: likeData } = await supabase
+            .from('sequence_likes')
+            .select('id')
+            .eq('sequence_id', params.id)
+            .eq('user_id', session.user.id)
+            .single();
+          
+          isLiked = !!likeData;
+        }
       }
 
-      // Map the data to include profile information
       const mappedSequence = {
         ...sequenceData,
         poses: JSON.parse(sequenceData.poses as unknown as string),
+        is_liked: isLiked,
         profiles: {
           full_name: profileData?.full_name || 'Unknown User'
         }
@@ -82,6 +106,67 @@ export default function SequencePage({ params }: { params: { id: string } }) {
       toast.error('Failed to load sequence');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    try {
+      if (!sequence) return;
+      setIsLiking(true);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      // Don't allow unliking own sequences
+      if (sequence.user_id === session.user.id) {
+        toast.error("You can't unlike your own sequence");
+        return;
+      }
+
+      if (sequence.is_liked) {
+        // Unlike and remove from saved sequences
+        const { error: unlikeError } = await supabase
+          .from('sequence_likes')
+          .delete()
+          .eq('sequence_id', sequence.id)
+          .eq('user_id', session.user.id);
+
+        if (unlikeError) throw unlikeError;
+
+        setSequence({
+          ...sequence,
+          is_liked: false,
+          like_count: sequence.like_count - 1
+        });
+
+        toast.success('Removed from saved sequences');
+      } else {
+        // Like and add to saved sequences
+        const { error: likeError } = await supabase
+          .from('sequence_likes')
+          .insert({
+            sequence_id: sequence.id,
+            user_id: session.user.id
+          });
+
+        if (likeError) throw likeError;
+
+        setSequence({
+          ...sequence,
+          is_liked: true,
+          like_count: sequence.like_count + 1
+        });
+
+        toast.success('Added to saved sequences');
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like status');
+    } finally {
+      setIsLiking(false);
     }
   };
 
@@ -124,11 +209,30 @@ export default function SequencePage({ params }: { params: { id: string } }) {
           <h1 className="text-4xl font-bold mb-2">{sequence.name}</h1>
           <div className="flex flex-wrap gap-4 items-center text-muted-foreground">
             <p>by {sequence.profiles.full_name}</p>
-            <div className="flex items-center gap-2">
-              <span>{sequence.view_count} views</span>
-              <span>•</span>
-              <span>♥ {sequence.like_count}</span>
-            </div>
+            <button
+              onClick={handleLikeToggle}
+              disabled={isLiking || sequence.user_id === sequence?.user_id}
+              className={`flex items-center gap-1 transition-colors ${
+                sequence.is_liked 
+                  ? 'text-red-500 hover:text-red-600' 
+                  : 'text-muted-foreground hover:text-red-500'
+              }`}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className={`h-5 w-5 ${isLiking ? 'animate-pulse' : ''}`}
+                viewBox="0 0 20 20" 
+                fill={sequence.is_liked ? 'currentColor' : 'none'}
+                stroke="currentColor"
+              >
+                <path 
+                  fillRule="evenodd" 
+                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" 
+                  clipRule="evenodd" 
+                />
+              </svg>
+              {sequence.like_count}
+            </button>
           </div>
         </div>
 

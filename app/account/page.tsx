@@ -52,13 +52,39 @@ export default function AccountPage() {
       console.log('Session found:', session.user.id);
 
       // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single();
 
-      if (profileError) {
+      // If no profile exists, create one
+      if (profileError?.code === 'PGRST116') {
+        console.log('No profile found, creating one...');
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: session.user.id,
+              full_name: null,
+              experience_level: null,
+              preferred_style: null,
+              practice_frequency: null,
+              focus_areas: [],
+              notifications_enabled: true
+            }
+          ])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          throw createError;
+        }
+
+        profileData = newProfile;
+        profileError = null;
+      } else if (profileError) {
         console.error('Profile error:', profileError);
         throw profileError;
       }

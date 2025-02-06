@@ -16,6 +16,10 @@ interface PoseWithDetails {
   description: string;
 }
 
+interface AlternativesMap {
+  [key: number]: number[];
+}
+
 export async function POST(req: Request) {
   try {
     const { sequence, available_poses, focus, level } = await req.json();
@@ -30,11 +34,11 @@ export async function POST(req: Request) {
     });
 
     // For each pose in the sequence, find 2-3 similar poses from the same category and difficulty
-    const alternatives: { [key: number]: number[] } = {};
+    const alternatives: AlternativesMap = {};
     
     sequence.forEach((pose: YogaPose) => {
       const similarPoses = available_poses.filter((p: PoseWithDetails) => 
-        p.id !== pose.id && // Not the same pose
+        p.id !== Number(pose.id) && // Not the same pose
         p.difficulty === pose.difficulty_level && // Same difficulty
         p.category === pose.category_name && // Same category
         !sequence.some((seqPose: YogaPose) => seqPose.id === p.id) // Not already in sequence
@@ -42,7 +46,7 @@ export async function POST(req: Request) {
 
       if (similarPoses.length > 0) {
         // Take up to 3 similar poses
-        alternatives[pose.id] = similarPoses
+        alternatives[Number(pose.id)] = similarPoses
           .slice(0, 3)
           .map((p: PoseWithDetails) => p.id);
       }
@@ -61,18 +65,19 @@ export async function POST(req: Request) {
     };
 
     sequence.forEach((pose: YogaPose) => {
-      if (!alternatives[pose.id] || alternatives[pose.id].length < 2) {
+      const poseId = Number(pose.id);
+      if (!alternatives[poseId] || alternatives[poseId].length < 2) {
         const related = relatedCategories[pose.category_name] || [];
         const relatedPoses = available_poses.filter((p: PoseWithDetails) =>
-          p.id !== pose.id &&
+          p.id !== Number(pose.id) &&
           p.difficulty === pose.difficulty_level &&
           related.includes(p.category) &&
           !sequence.some((seqPose: YogaPose) => seqPose.id === p.id)
         );
 
         if (relatedPoses.length > 0) {
-          alternatives[pose.id] = [
-            ...(alternatives[pose.id] || []),
+          alternatives[poseId] = [
+            ...(alternatives[poseId] || []),
             ...relatedPoses.slice(0, 2).map((p: PoseWithDetails) => p.id)
           ].slice(0, 3);
         }
