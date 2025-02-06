@@ -9,11 +9,11 @@ import { toast } from 'react-hot-toast';
 interface UserProfile {
   id: string;
   email: string;
-  full_name: string;
-  experience_level: 'Beginner' | 'Intermediate' | 'Expert';
-  preferred_style: string;
-  practice_frequency: string;
-  focus_areas: string[];
+  full_name: string | null;
+  experience_level: 'Beginner' | 'Intermediate' | 'Expert' | null;
+  preferred_style: string | null;
+  practice_frequency: string | null;
+  focus_areas: string[] | null;
   notifications_enabled: boolean;
   created_at: string;
   last_login: string;
@@ -33,12 +33,23 @@ export default function AccountPage() {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      setError(null);
+
+      // Get session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw sessionError;
+      }
 
       if (!session) {
+        console.log('No session found, redirecting to login');
         router.push('/login');
         return;
       }
+
+      console.log('Session found:', session.user.id);
 
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
@@ -47,7 +58,17 @@ export default function AccountPage() {
         .eq('id', session.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw profileError;
+      }
+
+      if (!profileData) {
+        console.error('No profile data found');
+        throw new Error('No profile data found');
+      }
+
+      console.log('Profile data:', profileData);
 
       // Set profile with user email from session
       setProfile({
@@ -56,9 +77,10 @@ export default function AccountPage() {
         focus_areas: profileData.focus_areas || [],
         last_login: session.user.last_sign_in_at || ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
+      setError(error.message || 'Failed to load profile');
+      toast.error('Failed to load profile: ' + (error.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +96,11 @@ export default function AccountPage() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.full_name,
-          experience_level: profile.experience_level,
-          preferred_style: profile.preferred_style,
-          practice_frequency: profile.practice_frequency,
-          focus_areas: profile.focus_areas,
+          full_name: profile.full_name || null,
+          experience_level: profile.experience_level || null,
+          preferred_style: profile.preferred_style || null,
+          practice_frequency: profile.practice_frequency || null,
+          focus_areas: profile.focus_areas || [],
           notifications_enabled: profile.notifications_enabled
         })
         .eq('id', profile.id);
@@ -86,10 +108,10 @@ export default function AccountPage() {
       if (updateError) throw updateError;
 
       toast.success('Profile updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      setError('Failed to update profile');
-      toast.error('Failed to update profile');
+      setError(error.message || 'Failed to update profile');
+      toast.error('Failed to update profile: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
@@ -166,7 +188,7 @@ export default function AccountPage() {
                 <input
                   type="text"
                   value={profile.full_name || ''}
-                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value as UserProfile['full_name'] })}
                   className="brutalist-input"
                 />
               </div>
@@ -194,7 +216,7 @@ export default function AccountPage() {
                 <input
                   type="text"
                   value={profile.preferred_style || ''}
-                  onChange={(e) => setProfile({ ...profile, preferred_style: e.target.value })}
+                  onChange={(e) => setProfile({ ...profile, preferred_style: e.target.value as UserProfile['preferred_style'] })}
                   placeholder="e.g., Vinyasa, Hatha, Yin"
                   className="brutalist-input"
                 />
@@ -204,7 +226,7 @@ export default function AccountPage() {
                 <input
                   type="text"
                   value={profile.practice_frequency || ''}
-                  onChange={(e) => setProfile({ ...profile, practice_frequency: e.target.value })}
+                  onChange={(e) => setProfile({ ...profile, practice_frequency: e.target.value as UserProfile['practice_frequency'] })}
                   placeholder="e.g., 2-3 times per week"
                   className="brutalist-input"
                 />
