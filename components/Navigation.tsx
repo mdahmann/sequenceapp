@@ -82,10 +82,15 @@ export default function Navigation() {
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <span className="text-2xl font-bold tracking-tighter hover:text-primary transition-colors">
-              SEQUENCE
-            </span>
+          <Link href="/" className="flex items-center group">
+            <motion.span 
+              className="text-2xl font-bold tracking-tight transition-colors relative"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Sequence
+              <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
+            </motion.span>
           </Link>
 
           {/* Desktop Menu */}
@@ -94,60 +99,93 @@ export default function Navigation() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors ${
+                className="relative px-4 py-2 text-sm font-medium transition-colors group"
+              >
+                <span className={`relative z-10 ${
                   isActive(item.href)
                     ? 'text-primary font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {item.name}
+                    : 'text-muted-foreground group-hover:text-foreground'
+                }`}>
+                  {item.name}
+                </span>
+                {isActive(item.href) && (
+                  <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute inset-0 bg-primary/10 rounded-lg"
+                    initial={false}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                {!isActive(item.href) && (
+                  <div className="absolute inset-0 bg-primary/0 rounded-lg transition-colors group-hover:bg-primary/5" />
+                )}
               </Link>
             ))}
             {!isLoading && !user && (
               <Link
                 href="/login"
-                className="ml-2 px-6 py-2 text-sm font-bold tracking-wide uppercase bg-foreground text-background hover:bg-primary hover:text-white transition-colors"
+                className="relative ml-2 px-6 py-2 text-sm font-medium overflow-hidden group"
               >
-                Log In
+                <span className="relative z-10 text-background">Log in</span>
+                <motion.div 
+                  className="absolute inset-0 bg-foreground"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                />
               </Link>
             )}
             {!isLoading && user && (
-              <button
+              <motion.button
                 onClick={handleSignOut}
-                className="ml-2 px-6 py-2 text-sm font-bold tracking-wide uppercase border border-border/10 hover:bg-foreground hover:text-background transition-colors"
+                className="relative ml-2 px-6 py-2 text-sm font-medium border border-border/10 overflow-hidden group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                Sign Out
-              </button>
+                <span className="relative z-10 group-hover:text-background transition-colors">Sign out</span>
+                <div className="absolute inset-0 bg-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+              </motion.button>
             )}
-            <button
+            <motion.button
               onClick={toggleTheme}
-              className="ml-4 p-2 hover:text-primary transition-colors"
+              className="ml-4 p-2 hover:text-primary transition-colors relative group"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
-                <SunIcon className="w-5 h-5" />
-              ) : (
-                <MoonIcon className="w-5 h-5" />
-              )}
-            </button>
+              <span className="relative z-10">
+                {theme === 'dark' ? (
+                  <SunIcon className="w-5 h-5" />
+                ) : (
+                  <MoonIcon className="w-5 h-5" />
+                )}
+              </span>
+              <div className="absolute inset-0 bg-primary/0 rounded-full transition-colors group-hover:bg-primary/10" />
+            </motion.button>
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
-            <button
+            <motion.button
               onClick={toggleTheme}
-              className="p-2 hover:text-primary transition-colors"
+              className="p-2 hover:text-primary transition-colors relative group"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
-                <SunIcon className="w-5 h-5" />
-              ) : (
-                <MoonIcon className="w-5 h-5" />
-              )}
-            </button>
-            <button
+              <span className="relative z-10">
+                {theme === 'dark' ? (
+                  <SunIcon className="w-5 h-5" />
+                ) : (
+                  <MoonIcon className="w-5 h-5" />
+                )}
+              </span>
+              <div className="absolute inset-0 bg-primary/0 rounded-full transition-colors group-hover:bg-primary/10" />
+            </motion.button>
+            <motion.button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 text-muted-foreground hover:text-foreground"
+              className="p-2 text-muted-foreground hover:text-foreground relative group"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               <svg
                 className="h-6 w-6"
@@ -171,7 +209,8 @@ export default function Navigation() {
                   />
                 )}
               </svg>
-            </button>
+              <div className="absolute inset-0 bg-primary/0 rounded-full transition-colors group-hover:bg-primary/10" />
+            </motion.button>
           </div>
         </div>
       </div>
@@ -183,7 +222,7 @@ export default function Navigation() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className="md:hidden border-t border-border/10 bg-background/90 backdrop-blur-xl"
           >
             <div className="container mx-auto px-6 py-4 space-y-1">
@@ -192,22 +231,35 @@ export default function Navigation() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors ${
+                  className="relative block px-4 py-2 text-sm font-medium transition-colors group"
+                >
+                  <span className={`relative z-10 ${
                     isActive(item.href)
                       ? 'text-primary font-bold'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {item.name}
+                      : 'text-muted-foreground group-hover:text-foreground'
+                  }`}>
+                    {item.name}
+                  </span>
+                  {isActive(item.href) && (
+                    <motion.div
+                      layoutId="mobileActiveIndicator"
+                      className="absolute inset-0 bg-primary/10 rounded-lg"
+                      initial={false}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  {!isActive(item.href) && (
+                    <div className="absolute inset-0 bg-primary/0 rounded-lg transition-colors group-hover:bg-primary/5" />
+                  )}
                 </Link>
               ))}
               {!isLoading && !user && (
                 <Link
                   href="/login"
                   onClick={() => setIsOpen(false)}
-                  className="block w-full px-4 py-2 mt-2 text-sm font-bold tracking-wide uppercase bg-foreground text-background hover:bg-primary hover:text-white transition-colors"
+                  className="block w-full px-4 py-2 mt-2 text-sm font-medium bg-foreground text-background hover:bg-primary hover:text-white transition-colors"
                 >
-                  Log In
+                  Log in
                 </Link>
               )}
               {!isLoading && user && (
@@ -216,9 +268,9 @@ export default function Navigation() {
                     await handleSignOut();
                     setIsOpen(false);
                   }}
-                  className="block w-full px-4 py-2 mt-2 text-sm font-bold tracking-wide uppercase border border-border/10 hover:bg-foreground hover:text-background transition-colors text-left"
+                  className="block w-full px-4 py-2 mt-2 text-sm font-medium border border-border/10 hover:bg-foreground hover:text-background transition-colors text-left"
                 >
-                  Sign Out
+                  Sign out
                 </button>
               )}
             </div>
