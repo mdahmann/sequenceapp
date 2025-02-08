@@ -1,7 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { ArrowPathIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, TrashIcon, PlusIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 import type { YogaPose } from '@/types/YogaPose';
+import { FlowBlock } from '@/lib/types/flow-blocks';
+import FlowBlockManager from './FlowBlockManager';
+import { Dialog } from '@headlessui/react';
+import { useState } from 'react';
 
 interface SequenceBuilderProps {
   sequence: YogaPose[] | null;
@@ -9,11 +13,21 @@ interface SequenceBuilderProps {
   duration: number;
   level: string;
   focus: string[];
+  title?: string;
   onPosesChange?: (poses: YogaPose[]) => void;
   onReplacePose?: (index: number) => void;
   onRemovePose?: (index: number) => void;
   onSaveClick?: () => void;
+  onRegenerateClick?: () => void;
   onAddPose?: (index: number) => void;
+  flowBlockReferences?: {
+    id: number;
+    flow_block_id: number;
+    position: number;
+    repetitions: number;
+  }[];
+  onFlowBlockAdd?: (flowBlock: FlowBlock, position: number) => void;
+  onFlowBlockRemove?: (position: number) => void;
 }
 
 interface Section {
@@ -28,12 +42,20 @@ export default function SequenceBuilder({
   duration, 
   level, 
   focus,
+  title,
   onPosesChange,
   onReplacePose,
   onRemovePose,
   onSaveClick,
-  onAddPose
+  onRegenerateClick,
+  onAddPose,
+  flowBlockReferences = [],
+  onFlowBlockAdd,
+  onFlowBlockRemove
 }: SequenceBuilderProps) {
+  const [isFlowBlockModalOpen, setIsFlowBlockModalOpen] = useState(false);
+  const [selectedSectionIndex, setSelectedSectionIndex] = useState<number | null>(null);
+
   // Group poses into sections based on their category and position in sequence
   const sections: Section[] = sequence ? [
     {
@@ -74,13 +96,22 @@ export default function SequenceBuilder({
     onPosesChange(items);
   };
 
+  const handleFlowBlockSelect = (flowBlock: FlowBlock) => {
+    if (selectedSectionIndex !== null && onFlowBlockAdd) {
+      const position = sections[selectedSectionIndex].startIndex;
+      onFlowBlockAdd(flowBlock, position);
+      setIsFlowBlockModalOpen(false);
+      setSelectedSectionIndex(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header with Title and Save Button */}
+      {/* Header with Title and Buttons */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">
-            {duration}-Minute {level} Flow
+            {title || `${duration}-Minute ${level} Flow`}
           </h2>
           <div className="flex flex-wrap gap-2 mt-2">
             {focus.map((area) => (
@@ -90,16 +121,29 @@ export default function SequenceBuilder({
             ))}
           </div>
         </div>
-        {onSaveClick && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onSaveClick}
-            className="brutalist-button-primary"
-          >
-            Save Sequence
-          </motion.button>
-        )}
+        <div className="flex items-center gap-3">
+          {onRegenerateClick && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onRegenerateClick}
+              className="brutalist-button-secondary flex items-center gap-2"
+            >
+              <ArrowPathIcon className="w-5 h-5" />
+              Regenerate
+            </motion.button>
+          )}
+          {onSaveClick && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onSaveClick}
+              className="brutalist-button-primary"
+            >
+              Save Sequence
+            </motion.button>
+          )}
+        </div>
       </div>
 
       {/* Sections */}
@@ -118,16 +162,33 @@ export default function SequenceBuilder({
                 <h3 className="text-lg font-medium text-muted-foreground">
                   {section.name}
                 </h3>
-                {onAddPose && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onAddPose(section.startIndex)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                  >
-                    <PlusIcon className="w-5 h-5" />
-                  </motion.button>
-                )}
+                <div className="flex items-center gap-2">
+                  {onFlowBlockAdd && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedSectionIndex(sectionIndex);
+                        setIsFlowBlockModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      title="Add Flow Block"
+                    >
+                      <Squares2X2Icon className="w-5 h-5" />
+                    </motion.button>
+                  )}
+                  {onAddPose && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => onAddPose(section.startIndex)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      title="Add Pose"
+                    >
+                      <PlusIcon className="w-5 h-5" />
+                    </motion.button>
+                  )}
+                </div>
               </div>
               <Droppable droppableId={`section-${sectionIndex}`}>
                 {(provided, snapshot) => (
@@ -138,59 +199,77 @@ export default function SequenceBuilder({
                       snapshot.isDraggingOver ? 'bg-white/5 rounded-xl p-4' : ''
                     }`}
                   >
-                    {section.poses.map((pose, index) => (
-                      <Draggable
-                        key={`${pose.id}-${section.startIndex + index}`}
-                        draggableId={`${pose.id}-${section.startIndex + index}`}
-                        index={section.startIndex + index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`bg-white/5 border border-white/10 rounded-xl p-4 cursor-move transition-all duration-200 ease-spring ${
-                              snapshot.isDragging 
-                                ? 'shadow-xl ring-2 ring-blue-500/20 scale-105 rotate-1 z-10' 
-                                : 'scale-100 rotate-0 z-0'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <h4 className="font-medium text-white">
-                                  {pose.english_name}
-                                </h4>
-                                <p className="text-sm text-gray-400">
-                                  {pose.sanskrit_name}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {onReplacePose && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() => onReplacePose(section.startIndex + index)}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-                                  >
-                                    <ArrowPathIcon className="w-5 h-5" />
-                                  </motion.button>
-                                )}
-                                {onRemovePose && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale:0.9 }}
-                                    onClick={() => onRemovePose(section.startIndex + index)}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
-                                  >
-                                    <TrashIcon className="w-5 h-5" />
-                                  </motion.button>
-                                )}
+                    {section.poses.map((pose, index) => {
+                      const absoluteIndex = section.startIndex + index;
+                      const flowBlockRef = flowBlockReferences.find(ref => ref.position === absoluteIndex);
+
+                      return (
+                        <Draggable
+                          key={`${pose.id}-${absoluteIndex}`}
+                          draggableId={`${pose.id}-${absoluteIndex}`}
+                          index={absoluteIndex}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`bg-white/5 border border-white/10 rounded-xl p-4 cursor-move transition-all duration-200 ease-spring ${
+                                flowBlockRef ? 'border-purple-500/50 bg-purple-500/10' : ''
+                              } ${
+                                snapshot.isDragging 
+                                  ? 'shadow-xl ring-2 ring-blue-500/20 scale-105 rotate-1 z-10' 
+                                  : 'scale-100 rotate-0 z-0'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div>
+                                  <h4 className="font-medium text-white">
+                                    {pose.english_name}
+                                    {flowBlockRef && flowBlockRef.repetitions > 1 && (
+                                      <span className="ml-2 text-sm text-purple-300">
+                                        x{flowBlockRef.repetitions}
+                                      </span>
+                                    )}
+                                  </h4>
+                                  <p className="text-sm text-gray-400">
+                                    {pose.sanskrit_name}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {onReplacePose && (
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() => onReplacePose(absoluteIndex)}
+                                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                    >
+                                      <ArrowPathIcon className="w-5 h-5" />
+                                    </motion.button>
+                                  )}
+                                  {onRemovePose && (
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale:0.9 }}
+                                      onClick={() => {
+                                        if (flowBlockRef && onFlowBlockRemove) {
+                                          onFlowBlockRemove(absoluteIndex);
+                                        } else {
+                                          onRemovePose(absoluteIndex);
+                                        }
+                                      }}
+                                      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                                    >
+                                      <TrashIcon className="w-5 h-5" />
+                                    </motion.button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -212,6 +291,32 @@ export default function SequenceBuilder({
           <span>Building your sequence...</span>
         </motion.div>
       )}
+
+      {/* Flow Block Modal */}
+      <Dialog
+        open={isFlowBlockModalOpen}
+        onClose={() => {
+          setIsFlowBlockModalOpen(false);
+          setSelectedSectionIndex(null);
+        }}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-4xl w-full bg-background rounded-lg shadow-lg p-6">
+            <Dialog.Title className="text-2xl font-bold mb-4">
+              Add Flow Block
+            </Dialog.Title>
+
+            <FlowBlockManager
+              mode="select"
+              onSelectFlowBlock={handleFlowBlockSelect}
+              className="mt-4"
+            />
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 } 

@@ -2,6 +2,7 @@
 
 ## 1. Flow and Repetition Structure
 - [ ] Add "Side Markers" (Left/Right) to poses that need bilateral practice
+- [ ] Allow grouping poses into "Flow Blocks" with hierarchical nesting
 - [ ] Allow grouping poses into "Flow Blocks" that can be repeated
 - [ ] Enable "Build-up Sequences" where each round adds new elements
 - [ ] Add "Counter" for how many times to repeat a flow
@@ -193,5 +194,30 @@ _Last Updated: [Date]_
 - Completed: 0
 - In Progress: 0
 - Remaining: 35
+
+[Flow Block Editor]
+├── Top Bar
+│   ├── Name & Category
+│   ├── Difficulty Level
+│   └── Duration Estimate
+│
+├── Main Content (3-column layout)
+│   ├── Flow Block List (left)
+│   │   └── Draggable blocks with quick actions
+│   │
+│   ├── Active Flow Block Editor (center)
+│   │   ├── Pose sequence with transitions
+│   │   ├── Timing indicators
+│   │   └── Breath markers
+│   │
+│   └── Preview/Details Panel (right)
+│       ├── Visual flow preview
+│       ├── Teaching notes
+│       └── Modifications/Props
+│
+└── Bottom Bar
+    ├── Add Pose/Block
+    ├── Save Template
+    └── Practice Mode
 
 

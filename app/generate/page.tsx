@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { YogaPose } from '@/lib/data/poses';
+import { FlowBlock } from '@/lib/types/flow-blocks';
 import { Dialog } from '@headlessui/react';
 import { PlusIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import SequencePoseManager from '@/components/SequencePoseManager';
@@ -21,7 +22,19 @@ interface Suggestion {
   description: string;
 }
 
-function GenerateContent() {
+interface GenerateContentProps {
+  initialSequence?: YogaPose[];
+  onPosesChange?: (poses: YogaPose[]) => void;
+  mode?: 'create' | 'edit';
+  className?: string;
+}
+
+function GenerateContent({
+  initialSequence,
+  onPosesChange,
+  mode = 'create',
+  className = ''
+}: GenerateContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editingSequenceId = searchParams.get('edit');
@@ -84,6 +97,14 @@ function GenerateContent() {
   const [poseModalType, setPoseModalType] = useState<'replace' | 'remove'>('replace');
   const [poseModalIndex, setPoseModalIndex] = useState(-1);
   const [poseModalOpen, setPoseModalOpen] = useState(false);
+  const [flowBlockReferences, setFlowBlockReferences] = useState<{
+    id: number;
+    flow_block_id: number;
+    position: number;
+    repetitions: number;
+  }[]>([]);
+  const [flowBlocks, setFlowBlocks] = useState<FlowBlock[]>([]);
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   
   const focusOptions = [
     'Core & Balance',
@@ -235,7 +256,8 @@ function GenerateContent() {
 
           if (sequenceError) throw sequenceError;
           if (sequenceData) {
-            setTitle(sequenceData.name);
+            // Set title first to ensure it's updated immediately
+            setTitle(sequenceData.name || '');
             setDuration(sequenceData.duration);
             setLevel(sequenceData.level);
             
@@ -248,7 +270,7 @@ function GenerateContent() {
             try {
               if (typeof sequenceData.poses === 'string') {
                 parsedPoses = JSON.parse(sequenceData.poses);
-            } else {
+              } else {
                 parsedPoses = sequenceData.poses;
               }
             } catch (err) {
@@ -299,6 +321,9 @@ function GenerateContent() {
             
             setShowFilters(false);
           }
+        } else {
+          // Reset title if not editing
+          setTitle('');
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Failed to load poses');
@@ -579,11 +604,23 @@ function GenerateContent() {
       }
 
       setSequence(generatedSequence);
-      const peakPosesNames = peakPoses.length > 0 
-        ? ` with ${peakPoses.map(p => p.english_name).join(' & ')}` 
-        : '';
-      const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
-      setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
+      
+      // Set title based on whether we're editing or creating
+      if (!editingSequenceId) {
+        // For new sequences, generate a title
+        const peakPosesNames = peakPoses.length > 0 
+          ? ` with ${peakPoses.map(p => p.english_name).join(' & ')}` 
+          : '';
+        const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
+        setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
+      } else if (!title) {
+        // Only set title for edited sequences if it's empty
+        const peakPosesNames = peakPoses.length > 0 
+          ? ` with ${peakPoses.map(p => p.english_name).join(' & ')}` 
+          : '';
+        const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
+        setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
+      }
 
       // Fetch AI suggestions and alternative poses in parallel
       try {
@@ -1023,6 +1060,115 @@ function GenerateContent() {
     }
   };
 
+  const handleFlowBlockAdd = async (flowBlock: FlowBlock, position: number) => {
+    // Create new arrays for timing and transitions
+    const newTiming = [...(timing || [])];
+    const newTransitions = [...(transitions || [])];
+
+    // Add timing for each pose in the flow block
+    flowBlock.poses.forEach((pose: YogaPose, index: number) => {
+      const poseTimingValue = flowBlock.timing?.[index]?.duration || '5 breaths';
+      newTiming.splice(position + index, 0, poseTimingValue);
+      if (index > 0) {
+        newTransitions.splice(
+          position + index - 1,
+          0,
+          flowBlock.timing?.[index]?.transition_in || 'Flow smoothly'
+        );
+      }
+    });
+
+    // Update the sequence with the flow block poses
+    const newSequence = [...(sequence || [])];
+    newSequence.splice(position, 0, ...flowBlock.poses);
+
+    // Update state
+    onPosesChange?.(newSequence);
+    setTiming(newTiming);
+    setTransitions(newTransitions);
+
+    // Add the flow block reference
+    const newFlowBlockRefs = [...flowBlockReferences];
+    newFlowBlockRefs.push({
+      id: Date.now(), // Temporary ID until saved
+      flow_block_id: flowBlock.id,
+      position,
+      repetitions: flowBlock.repetitions?.count || 1
+    });
+    setFlowBlockReferences(newFlowBlockRefs);
+  };
+
+  const handleFlowBlockRemove = (position: number) => {
+    if (!sequence) return;
+
+    // Find the flow block reference
+    const reference = flowBlockReferences.find(ref => ref.position === position);
+    if (!reference) return;
+
+    // Remove the flow block's poses
+    const flowBlock = flowBlocks.find(block => block.id === reference.flow_block_id);
+    if (!flowBlock) return;
+
+    const newSequence = [...sequence];
+    newSequence.splice(position, flowBlock.poses.length);
+    setSequence(newSequence);
+
+    // Remove the flow block reference
+    setFlowBlockReferences(flowBlockReferences.filter(ref => ref.id !== reference.id));
+
+    // Update timing and transitions
+    const newTiming = [...timing];
+    const newTransitions = [...transitions];
+    const newRepetitions = { ...repetitions };
+
+    // Remove timing for each pose in the flow block
+    newTiming.splice(position, flowBlock.poses.length);
+    newTransitions.splice(position, flowBlock.poses.length - 1);
+
+    // Remove repetition information
+    delete newRepetitions[`${position}-${position + flowBlock.poses.length - 1}`];
+
+    setTiming(newTiming);
+    setTransitions(newTransitions);
+    setRepetitions(newRepetitions);
+    setHasChanges(true);
+  };
+
+  // Load flow blocks
+  useEffect(() => {
+    const loadFlowBlocks = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase
+          .from('flow_blocks')
+          .select('*')
+          .or(`user_id.eq.${session.user.id},is_public.eq.true`);
+
+        if (error) throw error;
+        setFlowBlocks(data || []);
+      } catch (error) {
+        console.error('Error loading flow blocks:', error);
+      }
+    };
+
+    loadFlowBlocks();
+  }, []);
+
+  const handleRegenerateClick = () => {
+    if (hasChanges) {
+      setIsRegenerateModalOpen(true);
+    } else {
+      setShowFilters(true);
+    }
+  };
+
+  const handleRegenerateConfirm = () => {
+    setShowFilters(true);
+    setIsRegenerateModalOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1039,7 +1185,7 @@ function GenerateContent() {
         className="max-w-4xl mx-auto"
       >
         {/* Filters Section */}
-              <motion.div
+        <motion.div
           animate={{ 
             height: showFilters ? 'auto' : '0',
             marginBottom: showFilters ? '2rem' : '0'
@@ -1049,138 +1195,140 @@ function GenerateContent() {
         >
           <div className="space-y-6">
             <div className="space-y-3 sm:space-y-4">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Duration (minutes)
-                  </label>
-                  <input
-                    type="range"
-                    min="15"
-                    max="60"
-                    step="5"
-                    value={duration}
+              <label className="block text-sm font-medium text-gray-300">
+                Duration (minutes)
+              </label>
+              <input
+                type="range"
+                min="15"
+                max="60"
+                step="5"
+                value={duration}
                 onChange={(e) => handleDurationChange(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-center text-gray-400">{duration} minutes</div>
-                </div>
-
-            <div className="space-y-3 sm:space-y-4">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Experience Level
-                  </label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                    {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
-                      <motion.button
-                        key={l}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setLevel(l)}
-                    className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
-                          level === l
-                            ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
-                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                        }`}
-                      >
-                        {l}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">
-                    Focus Areas
-                  </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {focusOptions.map((option) => (
-                      <motion.button
-                        key={option}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          setFocus(prev => 
-                            prev.includes(option)
-                              ? prev.filter(f => f !== option)
-                              : [...prev, option]
-                          );
-                        }}
-                    className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                          focus.includes(option)
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                        }`}
-                      >
-                        {option}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
+                className="w-full"
+              />
+              <div className="text-center text-gray-400">{duration} minutes</div>
+            </div>
 
             <div className="space-y-3 sm:space-y-4">
               <label className="block text-sm font-medium text-gray-300">
-                    Peak Poses
-                  </label>
-                  <div className="space-y-2">
-                    {peakPoses.map((pose) => (
-                      <div 
-                        key={pose.english_name}
+                Experience Level
+              </label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
+                  <motion.button
+                    key={l}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setLevel(l)}
+                    className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
+                      level === l
+                        ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {l}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">
+                Focus Areas
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {focusOptions.map((option) => (
+                  <motion.button
+                    key={option}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setFocus(prev => 
+                        prev.includes(option)
+                          ? prev.filter(f => f !== option)
+                          : [...prev, option]
+                      );
+                    }}
+                    className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      focus.includes(option)
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {option}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+              <label className="block text-sm font-medium text-gray-300">
+                Peak Poses
+              </label>
+              <div className="space-y-2">
+                {peakPoses.map((pose) => (
+                  <div 
+                    key={pose.english_name}
                     className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
-                      >
-                          <div>
+                  >
+                    <div>
                       <div className="font-medium text-white">{pose.english_name}</div>
                       <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
-                          </div>
+                    </div>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                            onClick={() => handleRemovePeakPose(pose)}
+                      onClick={() => handleRemovePeakPose(pose)}
                       className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
-                          >
+                    >
                       <TrashIcon className="w-5 h-5" />
                     </motion.button>
-                      </div>
-                    ))}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setIsModalOpen(true)}
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                    >
-                  <PlusIcon className="w-5 h-5" />
-                      Add Peak Pose
-                    </motion.button>
                   </div>
-                </div>
+                ))}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  Add Peak Pose
+                </motion.button>
+              </div>
+            </div>
           </div>
         </motion.div>
 
-        {/* Generate Button */}
-        <motion.div
-          animate={{ 
-            marginTop: showFilters ? '2rem' : '0'
-          }}
-          className="flex justify-center"
-        >
-          <button
-                  onClick={generateSequence}
-                  disabled={isGenerating}
-            className="brutalist-button-primary"
-                >
-                  {isGenerating ? (
-              <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Generating...</span>
-                    </div>
-                  ) : (
-                    'Generate Sequence'
-                  )}
-          </button>
-              </motion.div>
+        {/* Generate Button - Only show when filters are visible */}
+        {showFilters && (
+          <motion.div
+            animate={{ 
+              marginTop: showFilters ? '2rem' : '0'
+            }}
+            className="flex justify-center"
+          >
+            <button
+              onClick={generateSequence}
+              disabled={isGenerating}
+              className="brutalist-button-primary"
+            >
+              {isGenerating ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </div>
+              ) : (
+                'Generate Sequence'
+              )}
+            </button>
+          </motion.div>
+        )}
 
         {/* Sequence Content */}
-          <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait">
           {isGenerating && !sequence && (
-              <motion.div
+            <motion.div
               key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1207,9 +1355,10 @@ function GenerateContent() {
                 sequence={sequence}
                 isLoading={isGenerating}
                 duration={duration}
-                      level={level}
+                level={level}
                 focus={focus}
-                      onPosesChange={setSequence}
+                title={title}
+                onPosesChange={setSequence}
                 onReplacePose={(index) => {
                   setPoseModalType('replace');
                   setPoseModalIndex(index);
@@ -1222,93 +1371,20 @@ function GenerateContent() {
                   setSequence(newSequence);
                 }}
                 onSaveClick={() => setIsSaveModalOpen(true)}
+                onRegenerateClick={handleRegenerateClick}
                 onAddPose={(index) => {
                   setPoseModalType('replace');
                   setPoseModalIndex(index);
                   setPoseModalOpen(true);
                 }}
+                flowBlockReferences={flowBlockReferences}
+                onFlowBlockAdd={handleFlowBlockAdd}
+                onFlowBlockRemove={handleFlowBlockRemove}
               />
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
-
-      <Dialog
-        open={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSearchTerm('');
-        }}
-        className="relative z-50"
-      >
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
-        
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="w-full max-w-2xl bg-gray-800/90 backdrop-blur-lg rounded-2xl border border-white/10 p-6 shadow-xl">
-            <Dialog.Title className="text-2xl font-bold text-white mb-4">
-              Select Peak Pose
-            </Dialog.Title>
-
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Search for a pose..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              />
-
-              <div className="max-h-[60vh] overflow-y-auto space-y-2">
-                {filteredPoses
-                  .filter(pose => 
-                    pose.difficulty_level === level &&
-                    !peakPoses.some(p => p.id === pose.id) &&
-                    (searchTerm === '' || 
-                      pose.english_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      pose.sanskrit_name.toLowerCase().includes(searchTerm.toLowerCase()))
-                  )
-                  .map((pose) => (
-                    <button
-                      key={pose.english_name}
-                      onClick={() => handleAddPeakPose(pose)}
-                      className="w-full p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="text-left">
-                          <h3 className="text-white font-medium">{pose.english_name}</h3>
-                          <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
-                        </div>
-                        <span className="px-3 py-1 text-sm rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                          {pose.difficulty_level}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-400 text-left">{pose.pose_description}</p>
-                    </button>
-                  ))}
-                {searchTerm && filteredPoses.length === 0 && (
-                  <div className="text-center text-gray-400 py-4">
-                    No poses found
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end mt-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setSearchTerm('');
-                  }}
-                  className="px-6 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors"
-                >
-                  Close
-                </motion.button>
-              </div>
-            </div>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
 
       {/* AI Suggestions Modal */}
       <Dialog
@@ -1329,7 +1405,7 @@ function GenerateContent() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
                   <p className="text-gray-400">Analyzing your sequence...</p>
-    </div>
+                </div>
               ) : aiSuggestions.length > 0 ? (
                 <div className="space-y-4">
                   {aiSuggestions.slice(0, 3).map((suggestion, index) => {
@@ -1359,7 +1435,7 @@ function GenerateContent() {
                               </svg>
                             ) : (
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
                               </svg>
                             )}
                           </div>
@@ -1450,6 +1526,44 @@ function GenerateContent() {
           mode="replace"
         />
       )}
+
+      {/* Regenerate Confirmation Modal */}
+      <Dialog
+        open={isRegenerateModalOpen}
+        onClose={() => setIsRegenerateModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
+        
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="w-full max-w-md bg-gray-800/90 backdrop-blur-lg rounded-2xl border border-white/10 p-6 shadow-xl">
+            <Dialog.Title className="text-2xl font-bold text-white mb-4">
+              Regenerate Sequence?
+            </Dialog.Title>
+
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                Regenerating your sequence will create a new sequence with your selected options. Any changes you've made to the current sequence will be lost.
+              </p>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setIsRegenerateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRegenerateConfirm}
+                  className="px-4 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                >
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 }
