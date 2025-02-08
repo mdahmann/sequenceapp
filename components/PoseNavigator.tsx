@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import CustomPoseForm from './CustomPoseForm';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import ConfirmationModal from './ConfirmationModal';
+import { MagnifyingGlassIcon, PlusIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
 interface PoseNavigatorProps {
   poses: YogaPose[];
@@ -186,18 +187,19 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Hero Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-4"
+        className="text-center space-y-4 relative"
       >
-        <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-          Explore Yoga Poses
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-3xl -z-10" />
+        <h1 className="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 font-mono">
+          POSE LIBRARY
         </h1>
-        <p className="text-xl text-gray-400">
-          Discover and learn about different yoga poses
+        <p className="text-xl text-gray-400 font-mono uppercase tracking-wide">
+          Discover & Learn Yoga Poses
         </p>
       </motion.div>
 
@@ -206,50 +208,62 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4"
+        className="space-y-4"
       >
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search poses..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-        />
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="SEARCH POSES..."
+            className="w-full bg-white/5 border-2 border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono"
+          />
+        </div>
 
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-        >
-          <option value="">All Categories</option>
-          {categories?.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <AdjustmentsHorizontalIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-white/5 border-2 border-white/10 rounded-xl pl-12 pr-4 py-4 text-white appearance-none cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono"
+            >
+              <option value="">ALL CATEGORIES</option>
+              {categories?.map((category) => (
+                <option key={category} value={category}>
+                  {category.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <select
-          value={selectedLevel}
-          onChange={(e) => setSelectedLevel(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-        >
-          <option value="">All Levels</option>
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Expert">Expert</option>
-        </select>
+          <div className="relative flex-1">
+            <AdjustmentsHorizontalIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="w-full bg-white/5 border-2 border-white/10 rounded-xl pl-12 pr-4 py-4 text-white appearance-none cursor-pointer hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono"
+            >
+              <option value="">ALL LEVELS</option>
+              <option value="Beginner">BEGINNER</option>
+              <option value="Intermediate">INTERMEDIATE</option>
+              <option value="Expert">EXPERT</option>
+            </select>
+          </div>
 
-        {isAuthenticated && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsCustomPoseFormOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-3 font-medium hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all whitespace-nowrap"
-          >
-            Add Custom Pose
-          </motion.button>
-        )}
+          {isAuthenticated && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsCustomPoseFormOpen(true)}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-8 py-4 font-mono hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all border-2 border-transparent hover:border-white/10"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>ADD POSE</span>
+            </motion.button>
+          )}
+        </div>
       </motion.div>
 
       {/* Results Grid */}
@@ -266,21 +280,24 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
               key={pose.id}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCustomPose ? 'border-purple-500/30 bg-purple-500/5' : ''
-              }`}
+              className={`relative bg-white/5 border-2 ${
+                isCustomPose ? 'border-purple-500/30' : 'border-white/10'
+              } rounded-xl p-6 hover:bg-white/10 transition-all cursor-pointer group overflow-hidden`}
               onClick={() => setSelectedPose(pose)}
             >
-              <div className="space-y-4">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/20 pointer-events-none" />
+              <div className="relative space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-medium mb-1 text-white">{pose.english_name}</h3>
-                    <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
+                  <div className="flex-1 space-y-1">
+                    <h3 className="text-xl font-bold text-white font-mono">{pose.english_name}</h3>
+                    <p className="text-sm text-gray-400 font-mono">{pose.sanskrit_name}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {isAuthenticated && isCustomPose && (
                       <>
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEditCustomPose(pose);
@@ -290,8 +307,10 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteCustomPose(pose);
@@ -301,26 +320,26 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
-                        </button>
+                        </motion.button>
                       </>
-                    )}
-                    {isCustomPose && (
-                      <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        Custom
-                      </span>
                     )}
                   </div>
                 </div>
-                <p className="text-sm text-gray-300 line-clamp-2">
+                <p className="text-sm text-gray-300 line-clamp-2 font-mono">
                   {pose.pose_description}
                 </p>
-                <div className="flex gap-2 mt-4">
-                  <span className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 text-xs font-bold rounded-full bg-blue-500/20 text-blue-300 border-2 border-blue-500/30 font-mono uppercase">
                     {pose.difficulty_level}
                   </span>
-                  <span className="px-3 py-1 text-xs rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <span className="px-3 py-1 text-xs font-bold rounded-full bg-purple-500/20 text-purple-300 border-2 border-purple-500/30 font-mono uppercase">
                     {pose.category_name}
                   </span>
+                  {isCustomPose && (
+                    <span className="px-3 py-1 text-xs font-bold rounded-full bg-green-500/20 text-green-300 border-2 border-green-500/30 font-mono uppercase">
+                      Custom
+                    </span>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -341,6 +360,7 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
           pose={selectedPose} 
           onClose={() => setSelectedPose(null)}
           onGenerateSequence={generateSequenceFromPose}
+          mode="view"
         />
       )}
 
@@ -350,7 +370,6 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
             pose={poseToEdit}
             onSubmit={async (pose) => {
               if (poseToEdit) {
-                // Update existing pose
                 const { error } = await supabase
                   .from('custom_poses')
                   .update(pose)
@@ -361,12 +380,10 @@ export default function PoseNavigator({ poses: initialPoses, categories }: PoseN
                   return;
                 }
               } else {
-                // Create new pose
                 await handleSaveCustomPose(pose);
               }
               setPoseToEdit(null);
               setIsCustomPoseFormOpen(false);
-              await fetchCustomPoses();
             }}
             onClose={() => {
               setPoseToEdit(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,9 @@ import { PlusIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/
 import SequencePoseManager from '@/components/SequencePoseManager';
 import { toast } from 'react-hot-toast';
 import SaveSequenceModal from '@/components/SaveSequenceModal';
+import LoadingSequence from '@/components/LoadingSequence';
+import SequenceBuilder from '@/components/SequenceBuilder';
+import PoseModal from '@/components/PoseModal';
 
 interface GeneratePageProps {}
 
@@ -78,6 +81,9 @@ function GenerateContent() {
   const [customPoses, setCustomPoses] = useState<YogaPose[]>([]);
   const [isLoadingCustomPoses, setIsLoadingCustomPoses] = useState(true);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [poseModalType, setPoseModalType] = useState<'replace' | 'remove'>('replace');
+  const [poseModalIndex, setPoseModalIndex] = useState(-1);
+  const [poseModalOpen, setPoseModalOpen] = useState(false);
   
   const focusOptions = [
     'Core & Balance',
@@ -1026,174 +1032,23 @@ function GenerateContent() {
   }
 
   return (
-    <>
-      <AnimatePresence>
-        {isGenerating && (
+    <div className="container mx-auto px-4 py-8">
       <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="fixed inset-0 bg-gradient-to-br backdrop-blur-md flex items-center justify-center z-[100]"
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-          >
-            <motion.div
-              animate={{
-                background: [
-                  'linear-gradient(to bottom right, rgb(30, 41, 59, 0.95), rgb(15, 23, 42, 0.95))',
-                  'linear-gradient(to bottom right, rgb(88, 28, 135, 0.95), rgb(30, 41, 59, 0.95))',
-                  'linear-gradient(to bottom right, rgb(30, 58, 138, 0.95), rgb(30, 41, 59, 0.95))',
-                  'linear-gradient(to bottom right, rgb(30, 41, 59, 0.95), rgb(15, 23, 42, 0.95))',
-                ]
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="absolute inset-0"
-            />
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="relative w-full h-full flex items-center justify-center"
-            >
-              <motion.div
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-3xl"
-                style={{ width: '40vh', height: '40vh' }}
-              />
-              <motion.div
-                className="relative text-center z-10 max-w-md px-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.p 
-                    key={currentQuote}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="text-white/80 text-2xl font-light tracking-wide leading-relaxed mb-12"
-                    transition={{
-                      duration: 0.6,
-                      ease: "easeOut"
-                    }}
-                  >
-                    {yogaQuotes[currentQuote].split(' - ')[0]}
-                    <span className="block mt-4 text-lg text-white/50">
-                      — {yogaQuotes[currentQuote].split(' - ')[1]}
-                    </span>
-                  </motion.p>
-                </AnimatePresence>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="relative"
-                >
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className="relative"
-                  >
-                    {isGenerating && (
-                      <motion.p
-                        animate={{
-                          y: [0, -6, 0],
-                          opacity: [0.6, 1, 0.6],
-                          textShadow: [
-                            '0 0 8px rgba(147, 197, 253, 0.3)',
-                            '0 0 16px rgba(147, 197, 253, 0.5)',
-                            '0 0 8px rgba(147, 197, 253, 0.3)'
-                          ]
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                        className="text-blue-300/80 text-sm font-light tracking-widest uppercase"
-                      >
-                        {isLoadingAiSuggestions ? 'Regenerating your sequence' : 'Loading your sequence'}
-                      </motion.p>
-                    )}
-                  </motion.div>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: isGenerating ? 0 : 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8"
+        className="max-w-4xl mx-auto"
       >
-        <div className="text-center space-y-3 sm:space-y-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-            {editingSequenceId ? 'Edit Sequence' : 'Generate Sequence'}
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-400">
-            {editingSequenceId 
-              ? 'Modify your existing sequence or regenerate a new one with the same settings' 
-              : 'Create a personalized yoga sequence'}
-          </p>
-        </div>
-
-        <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-          {error && (
-            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300">
-              {error}
-            </div>
-          )}
-
-          {sequence && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowFilters(!showFilters)}
-              className="w-full px-4 py-3 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-            >
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-              <motion.svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-4 w-4" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-                animate={{ rotate: showFilters ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </motion.svg>
-            </motion.button>
-          )}
-
-          <AnimatePresence mode="wait">
-            {(!sequence || showFilters) && (
+        {/* Filters Section */}
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-6 bg-gray-800/50 backdrop-blur-lg p-4 sm:p-8 rounded-2xl border border-white/10"
-              >
-                <div className="space-y-3 sm:space-y-4">
+          animate={{ 
+            height: showFilters ? 'auto' : '0',
+            marginBottom: showFilters ? '2rem' : '0'
+          }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4">
                   <label className="block text-sm font-medium text-gray-300">
                     Duration (minutes)
                   </label>
@@ -1203,24 +1058,24 @@ function GenerateContent() {
                     max="60"
                     step="5"
                     value={duration}
-                    onChange={(e) => handleDurationChange(parseInt(e.target.value))}
+                onChange={(e) => handleDurationChange(parseInt(e.target.value))}
                     className="w-full"
                   />
                   <div className="text-center text-gray-400">{duration} minutes</div>
                 </div>
 
-                <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-3 sm:space-y-4">
                   <label className="block text-sm font-medium text-gray-300">
                     Experience Level
                   </label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
                     {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
                       <motion.button
                         key={l}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setLevel(l)}
-                        className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
+                    className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
                           level === l
                             ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
                             : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
@@ -1236,7 +1091,7 @@ function GenerateContent() {
                   <label className="text-sm font-medium text-gray-300">
                     Focus Areas
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {focusOptions.map((option) => (
                       <motion.button
                         key={option}
@@ -1249,7 +1104,7 @@ function GenerateContent() {
                               : [...prev, option]
                           );
                         }}
-                        className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                           focus.includes(option)
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : 'bg-white/5 text-gray-400 hover:bg-white/10'
@@ -1261,129 +1116,121 @@ function GenerateContent() {
                   </div>
                 </div>
 
-                <div className="space-y-3 sm:space-y-4">
-                  <label className="block text-sm font-medium text-gray-300">
+            <div className="space-y-3 sm:space-y-4">
+              <label className="block text-sm font-medium text-gray-300">
                     Peak Poses
                   </label>
                   <div className="space-y-2">
                     {peakPoses.map((pose) => (
                       <div 
                         key={pose.english_name}
-                        className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
                       >
                           <div>
-                          <div className="font-medium text-white">{pose.english_name}</div>
-                          <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
+                      <div className="font-medium text-white">{pose.english_name}</div>
+                      <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
                           </div>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                             onClick={() => handleRemovePeakPose(pose)}
-                          className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                      className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
                           >
-                          <TrashIcon className="w-5 h-5" />
-                        </motion.button>
+                      <TrashIcon className="w-5 h-5" />
+                    </motion.button>
                       </div>
                     ))}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setIsModalOpen(true)}
-                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
                     >
-                      <PlusIcon className="w-5 h-5" />
+                  <PlusIcon className="w-5 h-5" />
                       Add Peak Pose
                     </motion.button>
                   </div>
                 </div>
+          </div>
+        </motion.div>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setIsGenerating(true);
-                    generateSequence();
-                  }}
+        {/* Generate Button */}
+        <motion.div
+          animate={{ 
+            marginTop: showFilters ? '2rem' : '0'
+          }}
+          className="flex justify-center"
+        >
+          <button
+                  onClick={generateSequence}
                   disabled={isGenerating}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl px-4 sm:px-6 py-3 font-medium transition-colors disabled:opacity-50"
+            className="brutalist-button-primary"
                 >
-                  Generate Sequence
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="wait">
-            {sequence && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div className="w-full space-y-4">
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="sequence-title"
-                          type="text"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="Enter a title for your sequence"
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-lg sm:text-xl font-medium text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        />
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setIsAiModalOpen(true);
-                            getAiSuggestions();
-                          }}
-                          className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                            <path fillRule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 00-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.294c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V3.936z" clipRule="evenodd" />
-                          </svg>
-                        </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setIsSaveModalOpen(true);
-                      }}
-                          disabled={!hasChanges || isSaving}
-                          className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      {isSaving ? (
-                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                            <DocumentArrowDownIcon className="w-6 h-6" />
-                      )}
-                    </motion.button>
-                  </div>
+                  {isGenerating ? (
+              <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Generating...</span>
                     </div>
-                      </div>
-                </div>
+                  ) : (
+                    'Generate Sequence'
+                  )}
+          </button>
+              </motion.div>
 
-                    <SequencePoseManager
-                      poses={sequence}
-                  allPoses={allAvailablePoses}
+        {/* Sequence Content */}
+          <AnimatePresence mode="wait">
+          {isGenerating && !sequence && (
+              <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-8"
+            >
+              <LoadingSequence
+                duration={duration}
+                level={level}
+                focus={focus}
+              />
+            </motion.div>
+          )}
+
+          {sequence && (
+            <motion.div
+              key="sequence"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-8"
+            >
+              <SequenceBuilder
+                sequence={sequence}
+                isLoading={isGenerating}
+                duration={duration}
                       level={level}
+                focus={focus}
                       onPosesChange={setSequence}
-                      peakPoses={peakPoses}
-                      setPeakPoses={setPeakPoses}
-                      timing={timing}
-                      transitions={transitions}
-                      repetitions={repetitions}
-                  enabledFeatures={enabledFeatures}
-                  onEnabledFeaturesChange={setEnabledFeatures}
-                    />
+                onReplacePose={(index) => {
+                  setPoseModalType('replace');
+                  setPoseModalIndex(index);
+                  setPoseModalOpen(true);
+                }}
+                onRemovePose={(index) => {
+                  if (!sequence) return;
+                  const newSequence = [...sequence];
+                  newSequence.splice(index, 1);
+                  setSequence(newSequence);
+                }}
+                onSaveClick={() => setIsSaveModalOpen(true)}
+                onAddPose={(index) => {
+                  setPoseModalType('replace');
+                  setPoseModalIndex(index);
+                  setPoseModalOpen(true);
+                }}
+              />
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
       </motion.div>
 
       <Dialog
@@ -1585,8 +1432,25 @@ function GenerateContent() {
         onClose={() => setIsSaveModalOpen(false)}
         onSave={handleSaveSequence}
         isSaving={isSaving}
+        defaultTitle={title}
       />
-    </>
+
+      {/* Pose Modal */}
+      {poseModalOpen && (
+        <PoseModal
+          poses={allAvailablePoses}
+          onClose={() => setPoseModalOpen(false)}
+          onSelect={(pose) => {
+            if (!sequence || poseModalIndex === -1) return;
+            const newSequence = [...sequence];
+            newSequence[poseModalIndex] = pose;
+            setSequence(newSequence);
+            setPoseModalOpen(false);
+          }}
+          mode="replace"
+        />
+      )}
+    </div>
   );
 }
 

@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { YogaPose } from '@/types/YogaPose';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { 
+  XMarkIcon, 
+  ArrowPathIcon, 
+  BeakerIcon, 
+  HeartIcon, 
+  SparklesIcon,
+  BookOpenIcon,
+  AcademicCapIcon,
+  FireIcon
+} from '@heroicons/react/24/outline';
 
 interface PoseModalProps {
   pose?: YogaPose | null;
@@ -29,13 +38,22 @@ export default function PoseModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPose, setExpandedPose] = useState<string | null>(null);
   const [selectedPose, setSelectedPose] = useState<YogaPose | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedLevel, setSelectedLevel] = useState<string>('');
 
-  const filteredPoses = searchQuery && poses.length > 0
-    ? poses.filter(p => 
-        p.english_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.sanskrit_name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+  const filteredPoses = searchQuery || selectedCategory || selectedLevel
+    ? poses.filter(p => {
+        const matchesSearch = !searchQuery || 
+          p.english_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.sanskrit_name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = !selectedCategory || p.category_name === selectedCategory;
+        const matchesLevel = !selectedLevel || p.difficulty_level === selectedLevel;
+        return matchesSearch && matchesCategory && matchesLevel;
+      })
     : poses;
+
+  const categories = Array.from(new Set(poses.map(p => p.category_name)));
+  const levels = ['Beginner', 'Intermediate', 'Expert'];
 
   const handleClose = () => {
     if (selectedPose) {
@@ -67,67 +85,87 @@ export default function PoseModal({
     if (!poseToShow) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/30 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="brutalist-card w-full max-w-2xl mx-4"
+          className="w-full max-w-3xl bg-white dark:bg-gray-900/90 backdrop-blur-lg rounded-2xl border-2 border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden"
         >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">{poseToShow.english_name}</h2>
-            <button
-              onClick={handleClose}
-              className="p-2 hover:bg-secondary/80 rounded-lg transition-colors"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
+          {/* Header with gradient background */}
+          <div className="relative bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 dark:from-blue-500/20 dark:via-purple-500/20 dark:to-pink-500/20 p-6">
+            <div className="absolute inset-0 bg-white/10 dark:bg-black/20" />
+            <div className="relative">
+              <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{poseToShow.english_name}</h2>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl text-gray-600 dark:text-gray-300">{poseToShow.sanskrit_name}</h3>
+                    {poseToShow.sanskrit_name_adapted && (
+                      <span className="text-gray-500 dark:text-gray-400">({poseToShow.sanskrit_name_adapted})</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="flex gap-2 mt-4">
+                <span className="px-4 py-1.5 text-sm font-bold rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border-2 border-blue-200 dark:border-blue-500/30">
+                  {poseToShow.difficulty_level}
+                </span>
+                <span className="px-4 py-1.5 text-sm font-bold rounded-full bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border-2 border-purple-200 dark:border-purple-500/30">
+                  {poseToShow.category_name}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">{poseToShow.sanskrit_name}</h3>
-              {poseToShow.sanskrit_name_adapted && (
-                <span className="text-muted-foreground">({poseToShow.sanskrit_name_adapted})</span>
-              )}
-            </div>
-
+          {/* Content */}
+          <div className="p-6 space-y-6">
             {poseToShow.translation_name && (
-              <p className="text-muted-foreground italic">
-                Translation: {poseToShow.translation_name}
-              </p>
+              <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <SparklesIcon className="w-5 h-5 text-pink-500 dark:text-pink-400" />
+                <p className="text-lg">
+                  <span className="text-pink-500 dark:text-pink-400 font-bold">Translation:</span> {poseToShow.translation_name}
+                </p>
+              </div>
             )}
 
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Description</h4>
-                <p className="text-foreground">{poseToShow.pose_description}</p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl p-5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
+                <div className="flex items-center gap-3 mb-3">
+                  <BeakerIcon className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+                  <h4 className="text-lg font-bold text-blue-500 dark:text-blue-400 tracking-wide">Description</h4>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{poseToShow.pose_description}</p>
               </div>
 
               {poseToShow.pose_benefits && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Benefits</h4>
-                  <p className="text-foreground">{poseToShow.pose_benefits}</p>
+                <div className="bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl p-5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <HeartIcon className="w-6 h-6 text-pink-500 dark:text-pink-400" />
+                    <h4 className="text-lg font-bold text-pink-500 dark:text-pink-400 tracking-wide">Benefits</h4>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{poseToShow.pose_benefits}</p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-2">
-              <span className="tag-primary">
-                {poseToShow.difficulty_level}
-              </span>
-              <span className="tag-accent">
-                {poseToShow.category_name}
-              </span>
-            </div>
-
             {onGenerateSequence && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => handleGenerateSequence(poseToShow)}
-                className="brutalist-button-primary w-full"
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold hover:from-blue-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all border-2 border-transparent hover:border-white/10 flex items-center justify-center gap-3 group"
               >
+                <FireIcon className="w-6 h-6 group-hover:animate-pulse" />
                 Generate Sequence with this Pose
-              </button>
+              </motion.button>
             )}
           </div>
         </motion.div>
@@ -137,215 +175,142 @@ export default function PoseModal({
 
   // Pose selection/replacement modal
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative brutalist-card w-full max-w-4xl mx-4 my-8"
+        className="relative w-full max-w-4xl bg-gray-900/90 backdrop-blur-lg rounded-2xl border-2 border-white/10 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
       >
-        <div className="p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold tracking-tighter">
-              {mode === 'replace' ? 'REPLACE POSE' : mode === 'view' ? singlePose?.english_name.toUpperCase() : 'SELECT POSE'}
+        <div className="relative bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 p-6">
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="relative flex justify-between items-center">
+            <h2 className="text-3xl font-bold text-white">
+              {mode === 'replace' ? 'Replace Pose' : 'Select Pose'}
             </h2>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-secondary/80 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
+        </div>
 
-          {mode !== 'view' && (
-            <input
-              type="text"
-              placeholder="Search poses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="brutalist-input text-lg"
-            />
-          )}
+        <div className="p-6 space-y-4">
+          <input
+            type="text"
+            placeholder="SEARCH POSES..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl px-4 py-4 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          />
 
-          <div className="space-y-8">
-            {mode === 'view' && singlePose ? (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-medium">{singlePose.sanskrit_name}</h3>
-                    {singlePose.sanskrit_name_adapted && (
-                      <span className="text-muted-foreground">({singlePose.sanskrit_name_adapted})</span>
-                    )}
-                  </div>
+          <div className="flex gap-4">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="flex-1 bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl px-4 py-4 text-gray-900 dark:text-white appearance-none cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="">ALL CATEGORIES</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
 
-                  {singlePose.translation_name && (
-                    <p className="text-muted-foreground italic">
-                      Translation: {singlePose.translation_name}
-                    </p>
-                  )}
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="flex-1 bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl px-4 py-4 text-gray-900 dark:text-white appearance-none cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="">ALL LEVELS</option>
+              {levels.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Description</h4>
-                      <p className="text-foreground">{singlePose.pose_description}</p>
-                    </div>
-
-                    {singlePose.pose_benefits && (
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Benefits</h4>
-                        <p className="text-foreground">{singlePose.pose_benefits}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <span className="tag-primary">
-                      {singlePose.difficulty_level}
-                    </span>
-                    <span className="tag-accent">
-                      {singlePose.category_name}
-                    </span>
-                  </div>
-                </div>
-
-                {onGenerateSequence && (
-                  <button
-                    onClick={() => handleGenerateSequence(singlePose)}
-                    className="brutalist-button-primary w-full"
-                  >
-                    Generate Sequence with this Pose
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* Suggested Poses Section */}
-                {mode === 'replace' && suggestedPoses.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold tracking-tighter">SUGGESTED REPLACEMENTS</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {isLoadingSuggestions ? (
-                        Array(2).fill(0).map((_, i) => (
-                          <div
-                            key={`loading-${i}`}
-                            className="brutalist-card animate-pulse"
-                          >
-                            <div className="h-6 w-32 bg-muted rounded mb-2"></div>
-                            <div className="h-4 w-24 bg-muted rounded"></div>
-                          </div>
-                        ))
-                      ) : (
-                        suggestedPoses.slice(0, 2).map((pose) => (
-                          <motion.button
-                            key={pose.id}
-                            onClick={() => handleSelect(pose)}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="brutalist-card text-left"
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium truncate">{pose.english_name}</h4>
-                                <span className="px-2 py-0.5 text-xs font-medium tracking-wide uppercase bg-primary/20 text-primary-foreground border border-primary/30">
-                                  Suggested
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{pose.sanskrit_name}</p>
-                              <div className="flex gap-2">
-                                <span className="px-2 py-1 text-xs font-medium tracking-wide uppercase bg-accent/20 text-accent-foreground border border-accent/30">
-                                  {pose.difficulty_level}
-                                </span>
-                                <span className="px-2 py-1 text-xs font-medium tracking-wide uppercase bg-secondary text-secondary-foreground border border-border">
-                                  {pose.category_name}
-                                </span>
-                              </div>
-                            </div>
-                          </motion.button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* All Poses Section */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold tracking-tighter">ALL POSES</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[calc(100vh-24rem)] overflow-y-auto p-1">
-                    {filteredPoses
-                      .filter(p => !suggestedPoses.some(sp => sp.id === p.id))
-                      .map((pose) => (
-                      <motion.div
-                        key={pose.id}
-                        className="relative"
+        <div className="flex-1 overflow-y-auto p-6 pt-0">
+          <div className="space-y-6">
+            {mode === 'replace' && suggestedPoses.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white">Suggested Replacements</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {isLoadingSuggestions ? (
+                    Array(2).fill(0).map((_, i) => (
+                      <div
+                        key={`loading-${i}`}
+                        className="bg-white/5 border-2 border-white/10 rounded-xl p-4 animate-pulse"
                       >
-                        <motion.button
-                          onClick={() => handleSelect(pose)}
-                          onMouseEnter={() => setExpandedPose(pose.id.toString())}
-                          onMouseLeave={() => setExpandedPose(null)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="brutalist-card w-full text-left"
-                        >
-                          <h4 className="font-medium truncate">{pose.english_name}</h4>
-                          <p className="text-sm text-muted-foreground truncate">{pose.sanskrit_name}</p>
-                          <div className="flex gap-2 mt-2">
-                            <span className="tag-primary">
+                        <div className="h-6 w-32 bg-white/10 rounded mb-2"></div>
+                        <div className="h-4 w-24 bg-white/10 rounded"></div>
+                      </div>
+                    ))
+                  ) : (
+                    suggestedPoses.slice(0, 2).map((pose) => (
+                      <motion.button
+                        key={pose.id}
+                        onClick={() => handleSelect(pose)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="bg-white/5 border-2 border-white/10 rounded-xl p-4 text-left hover:bg-white/10 transition-colors group"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-white">{pose.english_name}</h4>
+                            <span className="px-2 py-0.5 text-xs font-bold tracking-wide bg-blue-500/20 text-blue-300 border-2 border-blue-500/30 rounded-full">
+                              Suggested
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400">{pose.sanskrit_name}</p>
+                          <div className="flex gap-2">
+                            <span className="px-2 py-1 text-xs font-bold tracking-wide bg-purple-500/20 text-purple-300 border-2 border-purple-500/30 rounded-full">
                               {pose.difficulty_level}
                             </span>
-                            <span className="tag-accent">
+                            <span className="px-2 py-1 text-xs font-bold tracking-wide bg-blue-500/20 text-blue-300 border-2 border-blue-500/30 rounded-full">
                               {pose.category_name}
                             </span>
                           </div>
-                        </motion.button>
-
-                        <AnimatePresence>
-                          {expandedPose === pose.id.toString() && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="absolute left-0 right-0 top-full mt-2 z-10 brutalist-card"
-                            >
-                              <div className="space-y-4">
-                                {pose.translation_name && (
-                                  <p className="text-sm text-muted-foreground italic">
-                                    Translation: {pose.translation_name}
-                                  </p>
-                                )}
-                                
-                                <div>
-                                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Description</h4>
-                                  <p className="text-sm text-foreground">{pose.pose_description}</p>
-                                </div>
-
-                                {pose.pose_benefits && (
-                                  <div>
-                                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">Benefits</h4>
-                                    <p className="text-sm text-foreground">{pose.pose_benefits}</p>
-                                  </div>
-                                )}
-
-                                {onGenerateSequence && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleGenerateSequence(pose);
-                                    }}
-                                    className="brutalist-button-primary w-full mt-4"
-                                  >
-                                    Generate Sequence with this Pose
-                                  </button>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    ))}
-                  </div>
+                        </div>
+                      </motion.button>
+                    ))
+                  )}
                 </div>
-              </>
+              </div>
             )}
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white">All Poses</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredPoses.map((pose) => (
+                  <motion.button
+                    key={pose.id}
+                    onClick={() => handleSelect(pose)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-xl p-4 text-left hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group"
+                  >
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-gray-900 dark:text-white">{pose.english_name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{pose.sanskrit_name}</p>
+                      <div className="flex gap-2">
+                        <span className="px-2 py-1 text-xs font-bold tracking-wide bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border-2 border-blue-200 dark:border-blue-500/30 rounded-full">
+                          {pose.difficulty_level}
+                        </span>
+                        <span className="px-2 py-1 text-xs font-bold tracking-wide bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border-2 border-purple-200 dark:border-purple-500/30 rounded-full">
+                          {pose.category_name}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { motion } from 'framer-motion';
 import { LockClosedIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
@@ -10,17 +10,24 @@ interface SaveSequenceModalProps {
   onClose: () => void;
   onSave: (name: string, isPublic: boolean) => void;
   isSaving: boolean;
+  defaultTitle?: string;
 }
 
 export default function SaveSequenceModal({
   isOpen,
   onClose,
   onSave,
-  isSaving
+  isSaving,
+  defaultTitle = ''
 }: SaveSequenceModalProps) {
-  const [sequenceName, setSequenceName] = useState('');
+  const [sequenceName, setSequenceName] = useState(defaultTitle);
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState('');
+
+  // Update sequenceName when defaultTitle changes
+  useEffect(() => {
+    setSequenceName(defaultTitle);
+  }, [defaultTitle]);
 
   const handleSave = () => {
     if (!sequenceName.trim()) {
