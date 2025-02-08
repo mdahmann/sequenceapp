@@ -1,0 +1,71 @@
+# Technical Requirements
+- Next.js + TypeScript + Tailwind stack
+- Latest Next.js features and best practices
+- Supabase integration for backend
+- Follow design-guide.md for styling
+
+# Development Process
+1. Think step-by-step before coding
+2. Write clear, readable, bug-free code
+3. Reference filenames explicitly
+4. No TODOs or placeholders
+5. If unsure, ask don't guess
+
+# Critical Project Rules
+1. NO drastic changes without explicit request
+2. Design changes must:
+   - Keep component structure
+   - Preserve functionality
+   - Only change requested visuals
+   - Maintain state/data flow
+
+3. Always reference:
+   - updates.md for feature tracking
+   - design-guide.md for styling
+   
+4. Test thoroughly:
+   - Light/dark modes
+   - Mobile responsiveness
+   - Accessibility
+   - Error states
+   - Loading states
+
+IMPORTANT PROJECT-SPECIFIC RULES:
+1. NEVER make drastic changes to existing functionality unless explicitly requested
+2. When implementing design changes:
+   - Keep existing component structure intact
+   - Maintain current functionality
+   - Only modify requested visual elements
+   - Preserve state management and data flow
+   - Don't modify existing props/interfaces unless explicitly requested
+
+3. Always check updates.md for:
+   - Flow and repetition features
+   - Mini-sequence implementation
+   - Timing and rhythm features
+   - Teaching tools integration
+   - Sequence visualization needs
+   - Practice structure requirements
+   - Customization options
+
+4. Core Feature Areas (reference updates.md):
+   - Bilateral pose markers
+   - Flow blocks and repetitions
+   - Build-up sequences
+   - Flow templates
+   - Teacher signature flows
+   - Breath markers and timing
+   - Pose cues and modifications
+   - Flow charts and visualizations
+   - Warm-up/cool-down structure
+   - User customization options
+
+5. Implementation Guidelines:
+   - Test both light/dark modes
+   - Verify mobile responsiveness
+   - Maintain accessibility
+   - Keep loading states
+   - Handle errors gracefully
+   - Follow brutalist design aesthetic
+   - Use Space Grotesk typography
+   - Follow color system in design-guide.md

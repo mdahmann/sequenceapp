@@ -138,65 +138,59 @@ export default function SequenceBuilder({
                       snapshot.isDraggingOver ? 'bg-white/5 rounded-xl p-4' : ''
                     }`}
                   >
-                    <AnimatePresence>
-                      {section.poses.map((pose, index) => (
-                        <Draggable
-                          key={`${pose.id}-${section.startIndex + index}`}
-                          draggableId={`${pose.id}-${section.startIndex + index}`}
-                          index={section.startIndex + index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`bg-white/5 border border-white/10 rounded-xl p-4 cursor-move ${
-                                snapshot.isDragging ? 'shadow-xl ring-2 ring-blue-500/20 scale-[1.02] rotate-1' : ''
-                              }`}
-                            >
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                              >
-                                <div className="flex items-center justify-between gap-4">
-                                  <div>
-                                    <h4 className="font-medium text-white">
-                                      {pose.english_name}
-                                    </h4>
-                                    <p className="text-sm text-gray-400">
-                                      {pose.sanskrit_name}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {onReplacePose && (
-                                      <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => onReplacePose(section.startIndex + index)}
-                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-                                      >
-                                        <ArrowPathIcon className="w-5 h-5" />
-                                      </motion.button>
-                                    )}
-                                    {onRemovePose && (
-                                      <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => onRemovePose(section.startIndex + index)}
-                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
-                                      >
-                                        <TrashIcon className="w-5 h-5" />
-                                      </motion.button>
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
+                    {section.poses.map((pose, index) => (
+                      <Draggable
+                        key={`${pose.id}-${section.startIndex + index}`}
+                        draggableId={`${pose.id}-${section.startIndex + index}`}
+                        index={section.startIndex + index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`bg-white/5 border border-white/10 rounded-xl p-4 cursor-move transition-all duration-200 ease-spring ${
+                              snapshot.isDragging 
+                                ? 'shadow-xl ring-2 ring-blue-500/20 scale-105 rotate-1 z-10' 
+                                : 'scale-100 rotate-0 z-0'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <h4 className="font-medium text-white">
+                                  {pose.english_name}
+                                </h4>
+                                <p className="text-sm text-gray-400">
+                                  {pose.sanskrit_name}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {onReplacePose && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => onReplacePose(section.startIndex + index)}
+                                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                  >
+                                    <ArrowPathIcon className="w-5 h-5" />
+                                  </motion.button>
+                                )}
+                                {onRemovePose && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale:0.9 }}
+                                    onClick={() => onRemovePose(section.startIndex + index)}
+                                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                                  >
+                                    <TrashIcon className="w-5 h-5" />
+                                  </motion.button>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </Draggable>
-                      ))}
-                    </AnimatePresence>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
                     {provided.placeholder}
                   </div>
                 )}
