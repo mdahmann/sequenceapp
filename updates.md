@@ -2,7 +2,6 @@
 
 ## 1. Flow and Repetition Structure
 - [ ] Add "Side Markers" (Left/Right) to poses that need bilateral practice
-- [ ] Allow grouping poses into "Flow Blocks" with hierarchical nesting
 - [ ] Allow grouping poses into "Flow Blocks" that can be repeated
 - [ ] Enable "Build-up Sequences" where each round adds new elements
 - [ ] Add "Counter" for how many times to repeat a flow

@@ -270,7 +270,7 @@ function GenerateContent({
             try {
               if (typeof sequenceData.poses === 'string') {
                 parsedPoses = JSON.parse(sequenceData.poses);
-              } else {
+            } else {
                 parsedPoses = sequenceData.poses;
               }
             } catch (err) {
@@ -608,11 +608,11 @@ function GenerateContent({
       // Set title based on whether we're editing or creating
       if (!editingSequenceId) {
         // For new sequences, generate a title
-        const peakPosesNames = peakPoses.length > 0 
-          ? ` with ${peakPoses.map(p => p.english_name).join(' & ')}` 
-          : '';
-        const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
-        setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
+      const peakPosesNames = peakPoses.length > 0 
+        ? ` with ${peakPoses.map(p => p.english_name).join(' & ')}` 
+        : '';
+      const focusText = Array.isArray(focus) ? focus.join(' & ') : '';
+      setTitle(`${duration}-Minute ${level}${focusText ? ' ' + focusText : ''} Flow${peakPosesNames}`);
       } else if (!title) {
         // Only set title for edited sequences if it's empty
         const peakPosesNames = peakPoses.length > 0 
@@ -677,7 +677,7 @@ function GenerateContent({
 
   const handleSaveSequence = async (name: string, isPublic: boolean) => {
     try {
-    setIsSaving(true);
+      setIsSaving(true);
 
       // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
@@ -686,26 +686,44 @@ function GenerateContent({
         return;
       }
 
-      // Save sequence to database
-      const { data, error } = await supabase
+      if (!sequence) {
+        throw new Error('No sequence to save');
+      }
+
+      const sequenceData = {
+        name,
+        duration,
+        level,
+        focus: focus,
+        poses: sequence,  // Use the current sequence state instead of poses
+        peak_poses: peakPoses,
+        timing,
+        transitions,
+        repetitions,
+        enabled_features: enabledFeatures,
+        user_id: session.user.id,
+        is_public: isPublic,
+        published_at: isPublic ? new Date().toISOString() : null
+      };
+
+      let data, error;
+
+      if (editingSequenceId) {
+        // Update existing sequence
+        ({ data, error } = await supabase
           .from('sequences')
-          .insert({
-          name,
-            duration,
-            level,
-          focus: focus,
-          poses: poses,
-          peak_poses: peakPoses,
-          timing,
-          transitions,
-          repetitions,
-          enabled_features: enabledFeatures,
-          user_id: session.user.id,
-          is_public: isPublic,
-          published_at: isPublic ? new Date().toISOString() : null
-        })
-        .select()
-        .single();
+          .update(sequenceData)
+          .eq('id', editingSequenceId)
+          .select()
+          .single());
+      } else {
+        // Create new sequence
+        ({ data, error } = await supabase
+          .from('sequences')
+          .insert(sequenceData)
+          .select()
+          .single());
+      }
 
       if (error) throw error;
 
@@ -717,7 +735,7 @@ function GenerateContent({
       );
 
       setIsSaveModalOpen(false);
-        router.push('/saved');
+      router.push('/saved');
     } catch (error) {
       console.error('Error saving sequence:', error);
       toast.error('Failed to save sequence. Please try again.');
@@ -961,8 +979,8 @@ function GenerateContent({
         },
         body: JSON.stringify({
           sequence: revisedSequence.map((p: YogaPose) => p.id),
-          duration,
-          level,
+            duration,
+            level,
           target_duration_minutes: duration
         }),
       });
@@ -1060,18 +1078,70 @@ function GenerateContent({
     }
   };
 
+  const handleSaveAsFlowBlock = async (poses: YogaPose[], name: string, description?: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        router.push('/login');
+        return;
+      }
+
+      // Create the flow block
+      const { data: flowBlock, error } = await supabase
+        .from('flow_blocks')
+        .insert({
+          user_id: session.session.user.id,
+          name,
+          description,
+          poses,
+          timing: poses.map(() => '5 breaths'), // Default timing
+          is_bilateral: false,
+          difficulty_level: level,
+          category: name.toLowerCase().includes('warm') ? 'Warm-up' :
+                   name.toLowerCase().includes('standing') ? 'Standing Flow' :
+                   name.toLowerCase().includes('cool') ? 'Cool Down' : 'Custom Flow'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Flow block saved successfully');
+      return flowBlock;
+    } catch (error) {
+      console.error('Error saving flow block:', error);
+      toast.error('Failed to save flow block');
+    }
+  };
+
   const handleFlowBlockAdd = async (flowBlock: FlowBlock, position: number) => {
     // Create new arrays for timing and transitions
     const newTiming = [...(timing || [])];
     const newTransitions = [...(transitions || [])];
+    const newSequence = [...(sequence || [])];
+    const sequenceLength = sequence?.length || 0;
+
+    // Calculate the section size based on the flow block category
+    const sectionSizes = {
+      'Warm-up': Math.floor(sequenceLength * 0.2),
+      'Standing Flow': Math.floor(sequenceLength * 0.4),
+      'Cool Down': Math.floor(sequenceLength * 0.2),
+      'Custom Flow': flowBlock.poses.length
+    };
+
+    // Determine section position based on flow block category
+    const sectionPosition = flowBlock.category === 'Warm-up' ? 0 :
+                          flowBlock.category === 'Standing Flow' ? sectionSizes['Warm-up'] :
+                          flowBlock.category === 'Cool Down' ? sequenceLength - sectionSizes['Cool Down'] :
+                          position;
 
     // Add timing for each pose in the flow block
     flowBlock.poses.forEach((pose: YogaPose, index: number) => {
       const poseTimingValue = flowBlock.timing?.[index]?.duration || '5 breaths';
-      newTiming.splice(position + index, 0, poseTimingValue);
+      newTiming.splice(sectionPosition + index, 0, poseTimingValue);
       if (index > 0) {
         newTransitions.splice(
-          position + index - 1,
+          sectionPosition + index - 1,
           0,
           flowBlock.timing?.[index]?.transition_in || 'Flow smoothly'
         );
@@ -1079,8 +1149,7 @@ function GenerateContent({
     });
 
     // Update the sequence with the flow block poses
-    const newSequence = [...(sequence || [])];
-    newSequence.splice(position, 0, ...flowBlock.poses);
+    newSequence.splice(sectionPosition, 0, ...flowBlock.poses);
 
     // Update state
     onPosesChange?.(newSequence);
@@ -1092,10 +1161,12 @@ function GenerateContent({
     newFlowBlockRefs.push({
       id: Date.now(), // Temporary ID until saved
       flow_block_id: flowBlock.id,
-      position,
+      position: sectionPosition,
       repetitions: flowBlock.repetitions?.count || 1
     });
     setFlowBlockReferences(newFlowBlockRefs);
+
+    toast.success(`Added ${flowBlock.name} to sequence`);
   };
 
   const handleFlowBlockRemove = (position: number) => {
@@ -1185,7 +1256,7 @@ function GenerateContent({
         className="max-w-4xl mx-auto"
       >
         {/* Filters Section */}
-        <motion.div
+              <motion.div
           animate={{ 
             height: showFilters ? 'auto' : '0',
             marginBottom: showFilters ? '2rem' : '0'
@@ -1195,108 +1266,108 @@ function GenerateContent({
         >
           <div className="space-y-6">
             <div className="space-y-3 sm:space-y-4">
-              <label className="block text-sm font-medium text-gray-300">
-                Duration (minutes)
-              </label>
-              <input
-                type="range"
-                min="15"
-                max="60"
-                step="5"
-                value={duration}
+                  <label className="block text-sm font-medium text-gray-300">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="range"
+                    min="15"
+                    max="60"
+                    step="5"
+                    value={duration}
                 onChange={(e) => handleDurationChange(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <div className="text-center text-gray-400">{duration} minutes</div>
-            </div>
+                    className="w-full"
+                  />
+                  <div className="text-center text-gray-400">{duration} minutes</div>
+                </div>
 
             <div className="space-y-3 sm:space-y-4">
-              <label className="block text-sm font-medium text-gray-300">
-                Experience Level
-              </label>
+                  <label className="block text-sm font-medium text-gray-300">
+                    Experience Level
+                  </label>
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
-                  <motion.button
-                    key={l}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setLevel(l)}
+                    {(['Beginner', 'Intermediate', 'Expert'] as const).map((l) => (
+                      <motion.button
+                        key={l}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setLevel(l)}
                     className={`p-2 sm:p-3 rounded-xl border text-sm sm:text-base ${
-                      level === l
-                        ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
-                        : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                    }`}
-                  >
-                    {l}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
+                          level === l
+                            ? 'bg-blue-500/20 border-blue-500/30 text-blue-300'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {l}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
-                Focus Areas
-              </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">
+                    Focus Areas
+                  </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {focusOptions.map((option) => (
-                  <motion.button
-                    key={option}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setFocus(prev => 
-                        prev.includes(option)
-                          ? prev.filter(f => f !== option)
-                          : [...prev, option]
-                      );
-                    }}
+                    {focusOptions.map((option) => (
+                      <motion.button
+                        key={option}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setFocus(prev => 
+                            prev.includes(option)
+                              ? prev.filter(f => f !== option)
+                              : [...prev, option]
+                          );
+                        }}
                     className={`px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                      focus.includes(option)
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                    }`}
-                  >
-                    {option}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
+                          focus.includes(option)
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {option}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
 
             <div className="space-y-3 sm:space-y-4">
               <label className="block text-sm font-medium text-gray-300">
-                Peak Poses
-              </label>
-              <div className="space-y-2">
-                {peakPoses.map((pose) => (
-                  <div 
-                    key={pose.english_name}
+                    Peak Poses
+                  </label>
+                  <div className="space-y-2">
+                    {peakPoses.map((pose) => (
+                      <div 
+                        key={pose.english_name}
                     className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
-                  >
-                    <div>
+                      >
+                          <div>
                       <div className="font-medium text-white">{pose.english_name}</div>
                       <div className="text-sm text-gray-400">{pose.sanskrit_name}</div>
-                    </div>
+                          </div>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => handleRemovePeakPose(pose)}
+                            onClick={() => handleRemovePeakPose(pose)}
                       className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
-                    >
+                          >
                       <TrashIcon className="w-5 h-5" />
                     </motion.button>
-                  </div>
-                ))}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsModalOpen(true)}
+                      </div>
+                    ))}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setIsModalOpen(true)}
                   className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                >
+                    >
                   <PlusIcon className="w-5 h-5" />
-                  Add Peak Pose
-                </motion.button>
-              </div>
-            </div>
+                      Add Peak Pose
+                    </motion.button>
+                  </div>
+                </div>
           </div>
         </motion.div>
 
@@ -1309,26 +1380,26 @@ function GenerateContent({
             className="flex justify-center"
           >
             <button
-              onClick={generateSequence}
-              disabled={isGenerating}
+                  onClick={generateSequence}
+                  disabled={isGenerating}
               className="brutalist-button-primary"
-            >
-              {isGenerating ? (
+                >
+                  {isGenerating ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Generating...</span>
-                </div>
-              ) : (
-                'Generate Sequence'
-              )}
+                    </div>
+                  ) : (
+                    'Generate Sequence'
+                  )}
             </button>
-          </motion.div>
-        )}
+              </motion.div>
+            )}
 
         {/* Sequence Content */}
-        <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
           {isGenerating && !sequence && (
-            <motion.div
+              <motion.div
               key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1355,10 +1426,10 @@ function GenerateContent({
                 sequence={sequence}
                 isLoading={isGenerating}
                 duration={duration}
-                level={level}
+                      level={level}
                 focus={focus}
                 title={title}
-                onPosesChange={setSequence}
+                      onPosesChange={setSequence}
                 onReplacePose={(index) => {
                   setPoseModalType('replace');
                   setPoseModalIndex(index);
@@ -1377,13 +1448,14 @@ function GenerateContent({
                   setPoseModalIndex(index);
                   setPoseModalOpen(true);
                 }}
+                onSaveAsFlowBlock={handleSaveAsFlowBlock}
                 flowBlockReferences={flowBlockReferences}
                 onFlowBlockAdd={handleFlowBlockAdd}
                 onFlowBlockRemove={handleFlowBlockRemove}
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
       </motion.div>
 
       {/* AI Suggestions Modal */}
@@ -1407,7 +1479,7 @@ function GenerateContent({
                   <p className="text-gray-400">Analyzing your sequence...</p>
                 </div>
               ) : aiSuggestions.length > 0 ? (
-                <div className="space-y-4">
+            <div className="space-y-4">
                   {aiSuggestions.slice(0, 3).map((suggestion, index) => {
                     const title = suggestion.title;
                     const description = suggestion.description;
@@ -1462,8 +1534,8 @@ function GenerateContent({
                       }}
                       className="flex gap-2"
                     >
-                      <input
-                        type="text"
+              <input
+                type="text"
                         value={aiPrompt}
                         onChange={(e) => setAiPrompt(e.target.value)}
                         placeholder="Enter your own revision prompt..."
@@ -1479,13 +1551,13 @@ function GenerateContent({
                         Revise
                       </motion.button>
                     </form>
-                  </div>
-                </div>
+                        </div>
+                      </div>
               ) : (
                 <div className="text-center text-gray-400 py-8">
                   Click the button below to receive AI suggestions
-                </div>
-              )}
+                  </div>
+                )}
 
               <div className="flex justify-end">
                 <motion.button
